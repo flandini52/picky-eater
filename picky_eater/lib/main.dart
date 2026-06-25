@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import 'screens/food_list_screen.dart';
+import 'database/app_database.dart';
+import 'screens/home_screen.dart';
 
-void main() {
+late AppDatabase database;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  database = AppDatabase();
   runApp(const MyApp());
 }
 
@@ -17,7 +22,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: const FoodListScreen(),
+      home: const HomeScreen(),
     );
   }
 }

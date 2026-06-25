@@ -1,0 +1,106 @@
+import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' hide Column;
+import '../database/app_database.dart';
+
+class AddFoodScreen extends StatefulWidget {
+  final String personId;
+
+  const AddFoodScreen({super.key, required this.personId});
+
+  @override
+  State<AddFoodScreen> createState() => _AddFoodScreenState();
+}
+
+class _AddFoodScreenState extends State<AddFoodScreen> {
+  final TextEditingController nameController = TextEditingController();
+  String selectedCategory = 'frutta';
+  ExposureLevel selectedLevel = ExposureLevel.totalRefusal;
+
+  final List<String> categories = [
+    'frutta',
+    'verdura',
+    'carne',
+    'pesce',
+    'carboidrati',
+    'latticini',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Nuovo alimento'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Nome alimento',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Categoria'),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: selectedCategory,
+              items: categories
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => selectedCategory = value!),
+              decoration:
+                  const InputDecoration(border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<ExposureLevel>(
+              value: selectedLevel,
+              items: ExposureLevel.values
+                  .map((l) =>
+                      DropdownMenuItem(value: l, child: Text(l.label)))
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => selectedLevel = value!),
+              decoration: const InputDecoration(
+                labelText: 'Livello iniziale',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (nameController.text.isEmpty) return;
+                  final companion = FoodsCompanion.insert(
+                    id: DateTime.now()
+                        .millisecondsSinceEpoch
+                        .toString(),
+                    personId: widget.personId,
+                    name: nameController.text,
+                    category: selectedCategory,
+                    currentLevel:
+                        Value(selectedLevel.index),
+                  );
+                  Navigator.pop(context, companion);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Aggiungi'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

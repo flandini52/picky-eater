@@ -1,47 +1,117 @@
 import 'package:flutter/material.dart';
-import '../models/alimento.dart';
+import 'package:drift/drift.dart' hide Column;
+import '../database/app_database.dart';
+import '../main.dart';
+import 'add_food_screen.dart';
 
 class FoodListScreen extends StatefulWidget {
-  const FoodListScreen({super.key});
+  final Person person;
+
+  const FoodListScreen({super.key, required this.person});
 
   @override
   State<FoodListScreen> createState() => _FoodListScreenState();
 }
 
 class _FoodListScreenState extends State<FoodListScreen> {
-  // Lista di alimenti di esempio per ora
-  final List<Food> foods = [
-    Food(id: '1', name: 'Carota', category: 'verdura'),
-    Food(id: '2', name: 'Mela', category: 'frutta'),
-    Food(id: '3', name: 'Pollo', category: 'carne'),
-    Food(id: '4', name: 'Pasta', category: 'carboidrati'),
-  ];
+  List<Food> _foods = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFoods();
+  }
+
+  @override
+  void didUpdateWidget(FoodListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.person.id != widget.person.id) {
+      _loadFoods();
+    }
+  }
+
+  Future<void> _loadFoods() async {
+    final foods = await database.getFoodsByPerson(widget.person.id);
+    setState(() => _foods = foods);
+  }
+
+  void _showLevelPicker(Food food) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                food.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ...ExposureLevel.values.map((level) {
+              final isSelected = food.currentLevel == level.index;
+              return ListTile(
+                title: Text(level.label),
+                trailing: isSelected
+                    ? const Icon(Icons.check, color: Colors.orange)
+                    : null,
+                onTap: () async {
+                  await database.updateFoodLevel(food.id, level.index);
+                  await _loadFoods();
+                  if (context.mounted) Navigator.pop(context);
+                },
+              );
+            }),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alimenti'),
+        title: Text('Alimenti di ${widget.person.name}'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
-      body: ListView.builder(
-        itemCount: foods.length,
-        itemBuilder: (context, index) {
-          final food = foods[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              title: Text(food.name),
-              subtitle: Text(food.category),
-              trailing: Text(food.level.label),
+      body: _foods.isEmpty
+          ? const Center(child: Text('Nessun alimento ancora. Aggiungine uno!'))
+          : ListView.builder(
+              itemCount: _foods.length,
+              itemBuilder: (context, index) {
+                final food = _foods[index];
+                final level = ExposureLevel.values[food.currentLevel];
+                return Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    title: Text(food.name),
+                    subtitle: Text(food.category),
+                    trailing: Text(level.label),
+                    onTap: () => _showLevelPicker(food),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push<FoodsCompanion>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddFoodScreen(personId: widget.person.id),
             ),
           );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // qui aggiungeremo il form per un nuovo alimento
+          if (result != null) {
+            await database.insertFood(result);
+            await _loadFoods();
+          }
         },
         backgroundColor: Colors.orange,
         child: const Icon(Icons.add),
