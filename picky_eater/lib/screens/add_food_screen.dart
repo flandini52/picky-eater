@@ -14,7 +14,7 @@ class AddFoodScreen extends StatefulWidget {
 class _AddFoodScreenState extends State<AddFoodScreen> {
   final TextEditingController nameController = TextEditingController();
   String selectedCategory = 'frutta';
-  ExposureLevel selectedLevel = ExposureLevel.totalRefusal;
+  ExposureLevel selectedLevel = ExposureLevel.tolerates;
 
   final List<String> categories = [
     'frutta',

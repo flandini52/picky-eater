@@ -5,33 +5,53 @@ part 'app_database.g.dart';
 
 // Spostato qui da alimento.dart
 enum ExposureLevel {
-  totalRefusal,
-  toleratesPresence,
-  looks,
+  tolerates,
+  interacts,
+  smells,
   touches,
   tastes,
+  eats,
 }
 
 extension ExposureLevelExtension on ExposureLevel {
   String get label {
     switch (this) {
-      case ExposureLevel.totalRefusal:
-        return '🔴 Rifiuto totale';
-      case ExposureLevel.toleratesPresence:
-        return '🟠 Tollera la presenza';
-      case ExposureLevel.looks:
-        return '🟡 Guarda';
+      case ExposureLevel.tolerates:
+        return '🔴 Tollera';
+      case ExposureLevel.interacts:
+        return '🟠 Interagisce';
+      case ExposureLevel.smells:
+        return '🟡 Annusa';
       case ExposureLevel.touches:
         return '🟢 Tocca';
       case ExposureLevel.tastes:
-        return '✅ Assaggia';
+        return '🔵 Assaggia';
+      case ExposureLevel.eats:
+        return '⭐ Mangia';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case ExposureLevel.tolerates:
+        return 'È nella stessa stanza con il cibo';
+      case ExposureLevel.interacts:
+        return 'Usa utensili o tocca il cibo con strumenti';
+      case ExposureLevel.smells:
+        return 'Si avvicina e annusa il cibo';
+      case ExposureLevel.touches:
+        return 'Tocca il cibo con dita, mano o viso';
+      case ExposureLevel.tastes:
+        return 'Porta il cibo alle labbra o punta della lingua';
+      case ExposureLevel.eats:
+        return 'Mastica e deglutisce';
     }
   }
 }
 
 extension CategoryExtension on String {
   String get emoji {
-    switch (this) {
+    switch (toLowerCase()) {
       case 'frutta':
         return '🍎';
       case 'verdura':
@@ -44,6 +64,8 @@ extension CategoryExtension on String {
         return '🍝';
       case 'latticini':
         return '🧀';
+      case 'dolci':
+        return '🍬';
       default:
         return '🍽️';
     }
@@ -131,6 +153,12 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateFoodLevel(String foodId, int level) =>
       (update(foods)..where((f) => f.id.equals(foodId)))
           .write(FoodsCompanion(currentLevel: Value(level)));
+      
+Future<String> getFoodName(String foodId) async {
+  final food = await (select(foods)..where((f) => f.id.equals(foodId))).getSingle();
+  return food.name;
+}
+  
 
   // --- Sessions ---
   Future<List<Session>> getSessionsByPerson(String personId) =>

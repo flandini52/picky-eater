@@ -140,24 +140,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       itemCount: _sessionsForDay.length,
                       itemBuilder: (context, index) {
                         final session = _sessionsForDay[index];
-                        final targetLevel =
-                            ExposureLevel.values[session.targetLevel];
+                        final targetLevel = ExposureLevel.values[session.targetLevel];
                         final achieved = session.achievedLevel != null
-                            ? ExposureLevel
-                                .values[session.achievedLevel!]
+                            ? ExposureLevel.values[session.achievedLevel!]
                             : null;
+                        
+                        // Trova il nome del cibo dalla lista già caricata
+                        final food = _foods.firstWhere(
+                          (f) => f.id == session.foodId,
+                          orElse: () => _foods.first,
+                        );
+                        
                         return Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           child: ListTile(
-                            title: Text(session.foodId),
-                            subtitle:
-                                Text('Obiettivo: ${targetLevel.label}'),
+                            title: Text(food.name),
+                            subtitle: Text('Obiettivo: ${targetLevel.label}'),
                             trailing: achieved != null
                                 ? Text(achieved.label)
                                 : ElevatedButton(
-                                    onPressed: () =>
-                                        _completeSession(session),
+                                    onPressed: () => _completeSession(session),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white,
@@ -201,7 +203,7 @@ class _AddSessionSheet extends StatefulWidget {
 
 class _AddSessionSheetState extends State<_AddSessionSheet> {
   Food? selectedFood;
-  ExposureLevel selectedTarget = ExposureLevel.totalRefusal;
+  ExposureLevel selectedTarget = ExposureLevel.tolerates;
 
   @override
   Widget build(BuildContext context) {
