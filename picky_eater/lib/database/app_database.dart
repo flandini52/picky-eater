@@ -1,7 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:flutter/foundation.dart';
 
 part 'app_database.g.dart';
 
@@ -106,12 +104,9 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
-static QueryExecutor _openConnection() {
-  if (kIsWeb) {
-    return NativeDatabase.memory();
+  static QueryExecutor _openConnection() {
+    return driftDatabase(name: 'picky_eater_db');
   }
-  return driftDatabase(name: 'picky_eater_db');
-}
 
   // --- Families ---
   Future<List<Family>> getAllFamilies() => select(families).get();
