@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database/app_database.dart';
 import '../main.dart';
+import 'achivements_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Person person;
@@ -73,6 +74,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text('Progressi di ${widget.person.name}'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events),
+            tooltip: 'Traguardi',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AchievementsScreen(person: widget.person),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Colors.orange))

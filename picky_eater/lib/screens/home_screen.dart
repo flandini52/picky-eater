@@ -4,7 +4,6 @@ import '../main.dart';
 import 'food_list_screen.dart';
 import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
-import 'achivements_screen.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -175,9 +174,7 @@ Future<void> _addPerson() async {
                     ? DashboardScreen(person: _selectedPerson!)
                     : _currentIndex == 1
                         ? FoodListScreen(person: _selectedPerson!)
-                        : _currentIndex == 2
-                            ? CalendarScreen(person: _selectedPerson!)
-                            : AchievementsScreen(person: _selectedPerson!),
+                        : CalendarScreen(person: _selectedPerson!),
           ),
         ],
       ),
@@ -197,10 +194,6 @@ Future<void> _addPerson() async {
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month),
             label: 'Calendario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Traguardi',
           ),
         ],
       ),

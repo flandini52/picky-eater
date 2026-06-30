@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import '../database/app_database.dart';
 import '../main.dart';
 
@@ -60,10 +60,6 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 itemBuilder: (context, index) {
                   final type = BadgeType.values[index];
                   final isUnlocked = unlockedTypes.contains(type.name);
-                  final unlockedBadge = isUnlocked
-                      ? _unlockedBadges
-                          .firstWhere((b) => b.badgeType == type.name)
-                      : null;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
