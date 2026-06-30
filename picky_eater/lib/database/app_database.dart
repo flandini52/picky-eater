@@ -271,12 +271,44 @@ class AppDatabase extends _$AppDatabase {
   Future<void> insertPerson(PersonsCompanion person) =>
       into(persons).insert(person);
 
+ Future<void> updatePersonName(String personId, String name) =>
+      (update(persons)..where((p) => p.id.equals(personId))).write(
+        PersonsCompanion(name: Value(name)),
+      );
+
+  Future<void> deletePerson(String personId) async {
+    // Elimina tutti i dati collegati per evitare dati orfani
+    final personFoods = await getFoodsByPerson(personId);
+    for (final food in personFoods) {
+      await (delete(sessions)..where((s) => s.foodId.equals(food.id))).go();
+    }
+    await (delete(foods)..where((f) => f.personId.equals(personId))).go();
+    await (delete(badges)..where((b) => b.personId.equals(personId))).go();
+    await (delete(weeklyGoals)..where((g) => g.personId.equals(personId)))
+        .go();
+    await (delete(persons)..where((p) => p.id.equals(personId))).go();
+  }
+  
   // --- Foods ---
   Future<List<Food>> getFoodsByPerson(String personId) =>
       (select(foods)..where((f) => f.personId.equals(personId))).get();
 
   Future<void> insertFood(FoodsCompanion food) =>
       into(foods).insert(food);
+
+  Future<void> updateFood(String foodId, String name, String category) =>
+      (update(foods)..where((f) => f.id.equals(foodId))).write(
+        FoodsCompanion(
+          name: Value(name),
+          category: Value(category),
+        ),
+      );
+
+  Future<void> deleteFood(String foodId) async {
+    // Elimina prima le sessioni collegate per evitare dati orfani
+    await (delete(sessions)..where((s) => s.foodId.equals(foodId))).go();
+    await (delete(foods)..where((f) => f.id.equals(foodId))).go();
+  }
 
   Future<void> updateFoodLevel(String foodId, int level) =>
       (update(foods)..where((f) => f.id.equals(foodId)))

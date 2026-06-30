@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' hide Column;
 import '../database/app_database.dart';
 import '../main.dart';
 import 'add_food_screen.dart';
+import 'edit_food_screen.dart';
+
 
 class FoodListScreen extends StatefulWidget {
   final Person person;
@@ -94,7 +95,36 @@ class _FoodListScreenState extends State<FoodListScreen> {
                   child: ListTile(
                     title: Text(food.name),
                     subtitle: Text(food.category),
-                    trailing: Text(level.label),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(level.label),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                            onSelected: (value) async {
+                              if (value == 'edit') {
+                                final result = await Navigator.push<bool>(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => EditFoodScreen(food: food)),
+                                );
+                                if (result == true) await _loadFoods();
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Modifica'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     onTap: () => _showLevelPicker(food),
                   ),
                 );
