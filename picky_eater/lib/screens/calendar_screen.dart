@@ -35,17 +35,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  Future<void> _loadFoods() async {
-    final foods = await database.getFoodsByPerson(widget.person.id);
-    setState(() => _foods = foods);
-  }
+Future<void> _loadFoods() async {
+  final foods = await database.getFoodsByPerson(widget.person.id);
+  if (!mounted) return;
+  setState(() => _foods = foods);
+}
 
-  Future<void> _loadSessionsForDay(DateTime day) async {
-    final normalized = DateTime(day.year, day.month, day.day);
-    final sessions = await database.getSessionsByPersonAndDate(
-        widget.person.id, normalized);
-    setState(() => _sessionsForDay = sessions);
-  }
+Future<void> _loadSessionsForDay(DateTime day) async {
+  final normalized = DateTime(day.year, day.month, day.day);
+  final sessions = await database.getSessionsByPersonAndDate(
+      widget.person.id, normalized);
+  if (!mounted) return;
+  setState(() => _sessionsForDay = sessions);
+}
 
   Future<List<Session>> _getSessionsForDay(DateTime day) async {
     final normalized = DateTime(day.year, day.month, day.day);
@@ -81,8 +83,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           final newBadges = await database.checkAndUnlockBadges(
               widget.person.id, food.id, achievedLevel);
           if (_selectedDay != null) _loadSessionsForDay(_selectedDay!);
-              if (widget.onDataChanged != null) widget.onDataChanged!();
-              if (newBadges.isNotEmpty && mounted) {
+            if (widget.onDataChanged != null) widget.onDataChanged!();              if (newBadges.isNotEmpty && mounted) {
             for (final badge in newBadges) {
               _showBadgeUnlockedDialog(badge);
             }

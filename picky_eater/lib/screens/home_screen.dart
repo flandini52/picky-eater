@@ -119,9 +119,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result == true) await _initData();
   }
 
-  void _refreshData() {
-    setState(() => _dataVersion++);
-  }
+void _refreshData() {
+  setState(() => _dataVersion++);
+}
 
   void _openPersonMenu() {
     showMenu<void>(
@@ -253,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? DashboardScreen(key: ValueKey('dashboard_$_dataVersion'), person: _selectedPerson!)
                     : _currentIndex == 1
                         ? FoodListScreen(key: ValueKey('foodlist_$_dataVersion'), person: _selectedPerson!)
-                        : CalendarScreen(key: ValueKey('calendar_$_dataVersion'), person: _selectedPerson!, onDataChanged: _refreshData),
+                        : CalendarScreen(person: _selectedPerson!, onDataChanged: _refreshData),
           ),
         ],
       ),
