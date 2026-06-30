@@ -996,6 +996,17 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _activityMeta = const VerificationMeta(
+    'activity',
+  );
+  @override
+  late final GeneratedColumn<String> activity = GeneratedColumn<String>(
+    'activity',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _achievedLevelMeta = const VerificationMeta(
     'achievedLevel',
   );
@@ -1023,6 +1034,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     foodId,
     date,
     targetLevel,
+    activity,
     achievedLevel,
     notes,
   ];
@@ -1078,6 +1090,12 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     } else if (isInserting) {
       context.missing(_targetLevelMeta);
     }
+    if (data.containsKey('activity')) {
+      context.handle(
+        _activityMeta,
+        activity.isAcceptableOrUnknown(data['activity']!, _activityMeta),
+      );
+    }
     if (data.containsKey('achieved_level')) {
       context.handle(
         _achievedLevelMeta,
@@ -1122,6 +1140,10 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.int,
         data['${effectivePrefix}target_level'],
       )!,
+      activity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}activity'],
+      ),
       achievedLevel: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}achieved_level'],
@@ -1145,6 +1167,7 @@ class Session extends DataClass implements Insertable<Session> {
   final String foodId;
   final DateTime date;
   final int targetLevel;
+  final String? activity;
   final int? achievedLevel;
   final String? notes;
   const Session({
@@ -1153,6 +1176,7 @@ class Session extends DataClass implements Insertable<Session> {
     required this.foodId,
     required this.date,
     required this.targetLevel,
+    this.activity,
     this.achievedLevel,
     this.notes,
   });
@@ -1164,6 +1188,9 @@ class Session extends DataClass implements Insertable<Session> {
     map['food_id'] = Variable<String>(foodId);
     map['date'] = Variable<DateTime>(date);
     map['target_level'] = Variable<int>(targetLevel);
+    if (!nullToAbsent || activity != null) {
+      map['activity'] = Variable<String>(activity);
+    }
     if (!nullToAbsent || achievedLevel != null) {
       map['achieved_level'] = Variable<int>(achievedLevel);
     }
@@ -1180,6 +1207,9 @@ class Session extends DataClass implements Insertable<Session> {
       foodId: Value(foodId),
       date: Value(date),
       targetLevel: Value(targetLevel),
+      activity: activity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activity),
       achievedLevel: achievedLevel == null && nullToAbsent
           ? const Value.absent()
           : Value(achievedLevel),
@@ -1200,6 +1230,7 @@ class Session extends DataClass implements Insertable<Session> {
       foodId: serializer.fromJson<String>(json['foodId']),
       date: serializer.fromJson<DateTime>(json['date']),
       targetLevel: serializer.fromJson<int>(json['targetLevel']),
+      activity: serializer.fromJson<String?>(json['activity']),
       achievedLevel: serializer.fromJson<int?>(json['achievedLevel']),
       notes: serializer.fromJson<String?>(json['notes']),
     );
@@ -1213,6 +1244,7 @@ class Session extends DataClass implements Insertable<Session> {
       'foodId': serializer.toJson<String>(foodId),
       'date': serializer.toJson<DateTime>(date),
       'targetLevel': serializer.toJson<int>(targetLevel),
+      'activity': serializer.toJson<String?>(activity),
       'achievedLevel': serializer.toJson<int?>(achievedLevel),
       'notes': serializer.toJson<String?>(notes),
     };
@@ -1224,6 +1256,7 @@ class Session extends DataClass implements Insertable<Session> {
     String? foodId,
     DateTime? date,
     int? targetLevel,
+    Value<String?> activity = const Value.absent(),
     Value<int?> achievedLevel = const Value.absent(),
     Value<String?> notes = const Value.absent(),
   }) => Session(
@@ -1232,6 +1265,7 @@ class Session extends DataClass implements Insertable<Session> {
     foodId: foodId ?? this.foodId,
     date: date ?? this.date,
     targetLevel: targetLevel ?? this.targetLevel,
+    activity: activity.present ? activity.value : this.activity,
     achievedLevel: achievedLevel.present
         ? achievedLevel.value
         : this.achievedLevel,
@@ -1246,6 +1280,7 @@ class Session extends DataClass implements Insertable<Session> {
       targetLevel: data.targetLevel.present
           ? data.targetLevel.value
           : this.targetLevel,
+      activity: data.activity.present ? data.activity.value : this.activity,
       achievedLevel: data.achievedLevel.present
           ? data.achievedLevel.value
           : this.achievedLevel,
@@ -1261,6 +1296,7 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('foodId: $foodId, ')
           ..write('date: $date, ')
           ..write('targetLevel: $targetLevel, ')
+          ..write('activity: $activity, ')
           ..write('achievedLevel: $achievedLevel, ')
           ..write('notes: $notes')
           ..write(')'))
@@ -1274,6 +1310,7 @@ class Session extends DataClass implements Insertable<Session> {
     foodId,
     date,
     targetLevel,
+    activity,
     achievedLevel,
     notes,
   );
@@ -1286,6 +1323,7 @@ class Session extends DataClass implements Insertable<Session> {
           other.foodId == this.foodId &&
           other.date == this.date &&
           other.targetLevel == this.targetLevel &&
+          other.activity == this.activity &&
           other.achievedLevel == this.achievedLevel &&
           other.notes == this.notes);
 }
@@ -1296,6 +1334,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<String> foodId;
   final Value<DateTime> date;
   final Value<int> targetLevel;
+  final Value<String?> activity;
   final Value<int?> achievedLevel;
   final Value<String?> notes;
   final Value<int> rowid;
@@ -1305,6 +1344,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.foodId = const Value.absent(),
     this.date = const Value.absent(),
     this.targetLevel = const Value.absent(),
+    this.activity = const Value.absent(),
     this.achievedLevel = const Value.absent(),
     this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1315,6 +1355,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     required String foodId,
     required DateTime date,
     required int targetLevel,
+    this.activity = const Value.absent(),
     this.achievedLevel = const Value.absent(),
     this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1329,6 +1370,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<String>? foodId,
     Expression<DateTime>? date,
     Expression<int>? targetLevel,
+    Expression<String>? activity,
     Expression<int>? achievedLevel,
     Expression<String>? notes,
     Expression<int>? rowid,
@@ -1339,6 +1381,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       if (foodId != null) 'food_id': foodId,
       if (date != null) 'date': date,
       if (targetLevel != null) 'target_level': targetLevel,
+      if (activity != null) 'activity': activity,
       if (achievedLevel != null) 'achieved_level': achievedLevel,
       if (notes != null) 'notes': notes,
       if (rowid != null) 'rowid': rowid,
@@ -1351,6 +1394,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<String>? foodId,
     Value<DateTime>? date,
     Value<int>? targetLevel,
+    Value<String?>? activity,
     Value<int?>? achievedLevel,
     Value<String?>? notes,
     Value<int>? rowid,
@@ -1361,6 +1405,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       foodId: foodId ?? this.foodId,
       date: date ?? this.date,
       targetLevel: targetLevel ?? this.targetLevel,
+      activity: activity ?? this.activity,
       achievedLevel: achievedLevel ?? this.achievedLevel,
       notes: notes ?? this.notes,
       rowid: rowid ?? this.rowid,
@@ -1385,6 +1430,9 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     if (targetLevel.present) {
       map['target_level'] = Variable<int>(targetLevel.value);
     }
+    if (activity.present) {
+      map['activity'] = Variable<String>(activity.value);
+    }
     if (achievedLevel.present) {
       map['achieved_level'] = Variable<int>(achievedLevel.value);
     }
@@ -1405,8 +1453,546 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('foodId: $foodId, ')
           ..write('date: $date, ')
           ..write('targetLevel: $targetLevel, ')
+          ..write('activity: $activity, ')
           ..write('achievedLevel: $achievedLevel, ')
           ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WeeklyGoalsTable extends WeeklyGoals
+    with TableInfo<$WeeklyGoalsTable, WeeklyGoal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyGoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _personIdMeta = const VerificationMeta(
+    'personId',
+  );
+  @override
+  late final GeneratedColumn<String> personId = GeneratedColumn<String>(
+    'person_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES persons (id)',
+    ),
+  );
+  static const VerificationMeta _targetSessionsMeta = const VerificationMeta(
+    'targetSessions',
+  );
+  @override
+  late final GeneratedColumn<int> targetSessions = GeneratedColumn<int>(
+    'target_sessions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [personId, targetSessions];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_goals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyGoal> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('person_id')) {
+      context.handle(
+        _personIdMeta,
+        personId.isAcceptableOrUnknown(data['person_id']!, _personIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_personIdMeta);
+    }
+    if (data.containsKey('target_sessions')) {
+      context.handle(
+        _targetSessionsMeta,
+        targetSessions.isAcceptableOrUnknown(
+          data['target_sessions']!,
+          _targetSessionsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {personId};
+  @override
+  WeeklyGoal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyGoal(
+      personId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}person_id'],
+      )!,
+      targetSessions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_sessions'],
+      )!,
+    );
+  }
+
+  @override
+  $WeeklyGoalsTable createAlias(String alias) {
+    return $WeeklyGoalsTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyGoal extends DataClass implements Insertable<WeeklyGoal> {
+  final String personId;
+  final int targetSessions;
+  const WeeklyGoal({required this.personId, required this.targetSessions});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['person_id'] = Variable<String>(personId);
+    map['target_sessions'] = Variable<int>(targetSessions);
+    return map;
+  }
+
+  WeeklyGoalsCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyGoalsCompanion(
+      personId: Value(personId),
+      targetSessions: Value(targetSessions),
+    );
+  }
+
+  factory WeeklyGoal.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyGoal(
+      personId: serializer.fromJson<String>(json['personId']),
+      targetSessions: serializer.fromJson<int>(json['targetSessions']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'personId': serializer.toJson<String>(personId),
+      'targetSessions': serializer.toJson<int>(targetSessions),
+    };
+  }
+
+  WeeklyGoal copyWith({String? personId, int? targetSessions}) => WeeklyGoal(
+    personId: personId ?? this.personId,
+    targetSessions: targetSessions ?? this.targetSessions,
+  );
+  WeeklyGoal copyWithCompanion(WeeklyGoalsCompanion data) {
+    return WeeklyGoal(
+      personId: data.personId.present ? data.personId.value : this.personId,
+      targetSessions: data.targetSessions.present
+          ? data.targetSessions.value
+          : this.targetSessions,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyGoal(')
+          ..write('personId: $personId, ')
+          ..write('targetSessions: $targetSessions')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(personId, targetSessions);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyGoal &&
+          other.personId == this.personId &&
+          other.targetSessions == this.targetSessions);
+}
+
+class WeeklyGoalsCompanion extends UpdateCompanion<WeeklyGoal> {
+  final Value<String> personId;
+  final Value<int> targetSessions;
+  final Value<int> rowid;
+  const WeeklyGoalsCompanion({
+    this.personId = const Value.absent(),
+    this.targetSessions = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WeeklyGoalsCompanion.insert({
+    required String personId,
+    this.targetSessions = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : personId = Value(personId);
+  static Insertable<WeeklyGoal> custom({
+    Expression<String>? personId,
+    Expression<int>? targetSessions,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (personId != null) 'person_id': personId,
+      if (targetSessions != null) 'target_sessions': targetSessions,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WeeklyGoalsCompanion copyWith({
+    Value<String>? personId,
+    Value<int>? targetSessions,
+    Value<int>? rowid,
+  }) {
+    return WeeklyGoalsCompanion(
+      personId: personId ?? this.personId,
+      targetSessions: targetSessions ?? this.targetSessions,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (personId.present) {
+      map['person_id'] = Variable<String>(personId.value);
+    }
+    if (targetSessions.present) {
+      map['target_sessions'] = Variable<int>(targetSessions.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyGoalsCompanion(')
+          ..write('personId: $personId, ')
+          ..write('targetSessions: $targetSessions, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BadgesTable extends Badges with TableInfo<$BadgesTable, Badge> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BadgesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _personIdMeta = const VerificationMeta(
+    'personId',
+  );
+  @override
+  late final GeneratedColumn<String> personId = GeneratedColumn<String>(
+    'person_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES persons (id)',
+    ),
+  );
+  static const VerificationMeta _badgeTypeMeta = const VerificationMeta(
+    'badgeType',
+  );
+  @override
+  late final GeneratedColumn<String> badgeType = GeneratedColumn<String>(
+    'badge_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unlockedAtMeta = const VerificationMeta(
+    'unlockedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> unlockedAt = GeneratedColumn<DateTime>(
+    'unlocked_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, personId, badgeType, unlockedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'badges';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Badge> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('person_id')) {
+      context.handle(
+        _personIdMeta,
+        personId.isAcceptableOrUnknown(data['person_id']!, _personIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_personIdMeta);
+    }
+    if (data.containsKey('badge_type')) {
+      context.handle(
+        _badgeTypeMeta,
+        badgeType.isAcceptableOrUnknown(data['badge_type']!, _badgeTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_badgeTypeMeta);
+    }
+    if (data.containsKey('unlocked_at')) {
+      context.handle(
+        _unlockedAtMeta,
+        unlockedAt.isAcceptableOrUnknown(data['unlocked_at']!, _unlockedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_unlockedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Badge map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Badge(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      personId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}person_id'],
+      )!,
+      badgeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}badge_type'],
+      )!,
+      unlockedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}unlocked_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BadgesTable createAlias(String alias) {
+    return $BadgesTable(attachedDatabase, alias);
+  }
+}
+
+class Badge extends DataClass implements Insertable<Badge> {
+  final String id;
+  final String personId;
+  final String badgeType;
+  final DateTime unlockedAt;
+  const Badge({
+    required this.id,
+    required this.personId,
+    required this.badgeType,
+    required this.unlockedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['person_id'] = Variable<String>(personId);
+    map['badge_type'] = Variable<String>(badgeType);
+    map['unlocked_at'] = Variable<DateTime>(unlockedAt);
+    return map;
+  }
+
+  BadgesCompanion toCompanion(bool nullToAbsent) {
+    return BadgesCompanion(
+      id: Value(id),
+      personId: Value(personId),
+      badgeType: Value(badgeType),
+      unlockedAt: Value(unlockedAt),
+    );
+  }
+
+  factory Badge.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Badge(
+      id: serializer.fromJson<String>(json['id']),
+      personId: serializer.fromJson<String>(json['personId']),
+      badgeType: serializer.fromJson<String>(json['badgeType']),
+      unlockedAt: serializer.fromJson<DateTime>(json['unlockedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'personId': serializer.toJson<String>(personId),
+      'badgeType': serializer.toJson<String>(badgeType),
+      'unlockedAt': serializer.toJson<DateTime>(unlockedAt),
+    };
+  }
+
+  Badge copyWith({
+    String? id,
+    String? personId,
+    String? badgeType,
+    DateTime? unlockedAt,
+  }) => Badge(
+    id: id ?? this.id,
+    personId: personId ?? this.personId,
+    badgeType: badgeType ?? this.badgeType,
+    unlockedAt: unlockedAt ?? this.unlockedAt,
+  );
+  Badge copyWithCompanion(BadgesCompanion data) {
+    return Badge(
+      id: data.id.present ? data.id.value : this.id,
+      personId: data.personId.present ? data.personId.value : this.personId,
+      badgeType: data.badgeType.present ? data.badgeType.value : this.badgeType,
+      unlockedAt: data.unlockedAt.present
+          ? data.unlockedAt.value
+          : this.unlockedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Badge(')
+          ..write('id: $id, ')
+          ..write('personId: $personId, ')
+          ..write('badgeType: $badgeType, ')
+          ..write('unlockedAt: $unlockedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, personId, badgeType, unlockedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Badge &&
+          other.id == this.id &&
+          other.personId == this.personId &&
+          other.badgeType == this.badgeType &&
+          other.unlockedAt == this.unlockedAt);
+}
+
+class BadgesCompanion extends UpdateCompanion<Badge> {
+  final Value<String> id;
+  final Value<String> personId;
+  final Value<String> badgeType;
+  final Value<DateTime> unlockedAt;
+  final Value<int> rowid;
+  const BadgesCompanion({
+    this.id = const Value.absent(),
+    this.personId = const Value.absent(),
+    this.badgeType = const Value.absent(),
+    this.unlockedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BadgesCompanion.insert({
+    required String id,
+    required String personId,
+    required String badgeType,
+    required DateTime unlockedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       personId = Value(personId),
+       badgeType = Value(badgeType),
+       unlockedAt = Value(unlockedAt);
+  static Insertable<Badge> custom({
+    Expression<String>? id,
+    Expression<String>? personId,
+    Expression<String>? badgeType,
+    Expression<DateTime>? unlockedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (personId != null) 'person_id': personId,
+      if (badgeType != null) 'badge_type': badgeType,
+      if (unlockedAt != null) 'unlocked_at': unlockedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BadgesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? personId,
+    Value<String>? badgeType,
+    Value<DateTime>? unlockedAt,
+    Value<int>? rowid,
+  }) {
+    return BadgesCompanion(
+      id: id ?? this.id,
+      personId: personId ?? this.personId,
+      badgeType: badgeType ?? this.badgeType,
+      unlockedAt: unlockedAt ?? this.unlockedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (personId.present) {
+      map['person_id'] = Variable<String>(personId.value);
+    }
+    if (badgeType.present) {
+      map['badge_type'] = Variable<String>(badgeType.value);
+    }
+    if (unlockedAt.present) {
+      map['unlocked_at'] = Variable<DateTime>(unlockedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BadgesCompanion(')
+          ..write('id: $id, ')
+          ..write('personId: $personId, ')
+          ..write('badgeType: $badgeType, ')
+          ..write('unlockedAt: $unlockedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1420,6 +2006,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PersonsTable persons = $PersonsTable(this);
   late final $FoodsTable foods = $FoodsTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
+  late final $WeeklyGoalsTable weeklyGoals = $WeeklyGoalsTable(this);
+  late final $BadgesTable badges = $BadgesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1429,6 +2017,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     persons,
     foods,
     sessions,
+    weeklyGoals,
+    badges,
   ];
 }
 
@@ -1738,6 +2328,43 @@ final class $$PersonsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$WeeklyGoalsTable, List<WeeklyGoal>>
+  _weeklyGoalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.weeklyGoals,
+    aliasName: 'persons__id__weekly_goals__person_id',
+  );
+
+  $$WeeklyGoalsTableProcessedTableManager get weeklyGoalsRefs {
+    final manager = $$WeeklyGoalsTableTableManager(
+      $_db,
+      $_db.weeklyGoals,
+    ).filter((f) => f.personId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_weeklyGoalsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$BadgesTable, List<Badge>> _badgesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.badges,
+    aliasName: 'persons__id__badges__person_id',
+  );
+
+  $$BadgesTableProcessedTableManager get badgesRefs {
+    final manager = $$BadgesTableTableManager(
+      $_db,
+      $_db.badges,
+    ).filter((f) => f.personId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_badgesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$PersonsTableFilterComposer
@@ -1833,6 +2460,56 @@ class $$PersonsTableFilterComposer
           }) => $$SessionsTableFilterComposer(
             $db: $db,
             $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> weeklyGoalsRefs(
+    Expression<bool> Function($$WeeklyGoalsTableFilterComposer f) f,
+  ) {
+    final $$WeeklyGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyGoals,
+      getReferencedColumn: (t) => t.personId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.weeklyGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> badgesRefs(
+    Expression<bool> Function($$BadgesTableFilterComposer f) f,
+  ) {
+    final $$BadgesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.badges,
+      getReferencedColumn: (t) => t.personId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BadgesTableFilterComposer(
+            $db: $db,
+            $table: $db.badges,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1991,6 +2668,56 @@ class $$PersonsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> weeklyGoalsRefs<T extends Object>(
+    Expression<T> Function($$WeeklyGoalsTableAnnotationComposer a) f,
+  ) {
+    final $$WeeklyGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyGoals,
+      getReferencedColumn: (t) => t.personId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.weeklyGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> badgesRefs<T extends Object>(
+    Expression<T> Function($$BadgesTableAnnotationComposer a) f,
+  ) {
+    final $$BadgesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.badges,
+      getReferencedColumn: (t) => t.personId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BadgesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.badges,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$PersonsTableTableManager
@@ -2010,6 +2737,8 @@ class $$PersonsTableTableManager
             bool familyId,
             bool foodsRefs,
             bool sessionsRefs,
+            bool weeklyGoalsRefs,
+            bool badgesRefs,
           })
         > {
   $$PersonsTableTableManager(_$AppDatabase db, $PersonsTable table)
@@ -2064,12 +2793,20 @@ class $$PersonsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({familyId = false, foodsRefs = false, sessionsRefs = false}) {
+              ({
+                familyId = false,
+                foodsRefs = false,
+                sessionsRefs = false,
+                weeklyGoalsRefs = false,
+                badgesRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (foodsRefs) db.foods,
                     if (sessionsRefs) db.sessions,
+                    if (weeklyGoalsRefs) db.weeklyGoals,
+                    if (badgesRefs) db.badges,
                   ],
                   addJoins:
                       <
@@ -2139,6 +2876,44 @@ class $$PersonsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (weeklyGoalsRefs)
+                        await $_getPrefetchedData<
+                          Person,
+                          $PersonsTable,
+                          WeeklyGoal
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PersonsTableReferences
+                              ._weeklyGoalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PersonsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).weeklyGoalsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.personId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (badgesRefs)
+                        await $_getPrefetchedData<Person, $PersonsTable, Badge>(
+                          currentTable: table,
+                          referencedTable: $$PersonsTableReferences
+                              ._badgesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PersonsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).badgesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.personId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2159,7 +2934,13 @@ typedef $$PersonsTableProcessedTableManager =
       $$PersonsTableUpdateCompanionBuilder,
       (Person, $$PersonsTableReferences),
       Person,
-      PrefetchHooks Function({bool familyId, bool foodsRefs, bool sessionsRefs})
+      PrefetchHooks Function({
+        bool familyId,
+        bool foodsRefs,
+        bool sessionsRefs,
+        bool weeklyGoalsRefs,
+        bool badgesRefs,
+      })
     >;
 typedef $$FoodsTableCreateCompanionBuilder =
     FoodsCompanion Function({
@@ -2565,6 +3346,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       required String foodId,
       required DateTime date,
       required int targetLevel,
+      Value<String?> activity,
       Value<int?> achievedLevel,
       Value<String?> notes,
       Value<int> rowid,
@@ -2576,6 +3358,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<String> foodId,
       Value<DateTime> date,
       Value<int> targetLevel,
+      Value<String?> activity,
       Value<int?> achievedLevel,
       Value<String?> notes,
       Value<int> rowid,
@@ -2641,6 +3424,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<int> get targetLevel => $composableBuilder(
     column: $table.targetLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get activity => $composableBuilder(
+    column: $table.activity,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2725,6 +3513,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get activity => $composableBuilder(
+    column: $table.activity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get achievedLevel => $composableBuilder(
     column: $table.achievedLevel,
     builder: (column) => ColumnOrderings(column),
@@ -2801,6 +3594,9 @@ class $$SessionsTableAnnotationComposer
     column: $table.targetLevel,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get activity =>
+      $composableBuilder(column: $table.activity, builder: (column) => column);
 
   GeneratedColumn<int> get achievedLevel => $composableBuilder(
     column: $table.achievedLevel,
@@ -2890,6 +3686,7 @@ class $$SessionsTableTableManager
                 Value<String> foodId = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
                 Value<int> targetLevel = const Value.absent(),
+                Value<String?> activity = const Value.absent(),
                 Value<int?> achievedLevel = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -2899,6 +3696,7 @@ class $$SessionsTableTableManager
                 foodId: foodId,
                 date: date,
                 targetLevel: targetLevel,
+                activity: activity,
                 achievedLevel: achievedLevel,
                 notes: notes,
                 rowid: rowid,
@@ -2910,6 +3708,7 @@ class $$SessionsTableTableManager
                 required String foodId,
                 required DateTime date,
                 required int targetLevel,
+                Value<String?> activity = const Value.absent(),
                 Value<int?> achievedLevel = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -2919,6 +3718,7 @@ class $$SessionsTableTableManager
                 foodId: foodId,
                 date: date,
                 targetLevel: targetLevel,
+                activity: activity,
                 achievedLevel: achievedLevel,
                 notes: notes,
                 rowid: rowid,
@@ -3003,6 +3803,566 @@ typedef $$SessionsTableProcessedTableManager =
       Session,
       PrefetchHooks Function({bool personId, bool foodId})
     >;
+typedef $$WeeklyGoalsTableCreateCompanionBuilder =
+    WeeklyGoalsCompanion Function({
+      required String personId,
+      Value<int> targetSessions,
+      Value<int> rowid,
+    });
+typedef $$WeeklyGoalsTableUpdateCompanionBuilder =
+    WeeklyGoalsCompanion Function({
+      Value<String> personId,
+      Value<int> targetSessions,
+      Value<int> rowid,
+    });
+
+final class $$WeeklyGoalsTableReferences
+    extends BaseReferences<_$AppDatabase, $WeeklyGoalsTable, WeeklyGoal> {
+  $$WeeklyGoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $PersonsTable _personIdTable(_$AppDatabase db) =>
+      db.persons.createAlias('weekly_goals__person_id__persons__id');
+
+  $$PersonsTableProcessedTableManager get personId {
+    final $_column = $_itemColumn<String>('person_id')!;
+
+    final manager = $$PersonsTableTableManager(
+      $_db,
+      $_db.persons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_personIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$WeeklyGoalsTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyGoalsTable> {
+  $$WeeklyGoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get targetSessions => $composableBuilder(
+    column: $table.targetSessions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PersonsTableFilterComposer get personId {
+    final $$PersonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PersonsTableFilterComposer(
+            $db: $db,
+            $table: $db.persons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyGoalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyGoalsTable> {
+  $$WeeklyGoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get targetSessions => $composableBuilder(
+    column: $table.targetSessions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PersonsTableOrderingComposer get personId {
+    final $$PersonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PersonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.persons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyGoalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyGoalsTable> {
+  $$WeeklyGoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get targetSessions => $composableBuilder(
+    column: $table.targetSessions,
+    builder: (column) => column,
+  );
+
+  $$PersonsTableAnnotationComposer get personId {
+    final $$PersonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PersonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.persons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyGoalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyGoalsTable,
+          WeeklyGoal,
+          $$WeeklyGoalsTableFilterComposer,
+          $$WeeklyGoalsTableOrderingComposer,
+          $$WeeklyGoalsTableAnnotationComposer,
+          $$WeeklyGoalsTableCreateCompanionBuilder,
+          $$WeeklyGoalsTableUpdateCompanionBuilder,
+          (WeeklyGoal, $$WeeklyGoalsTableReferences),
+          WeeklyGoal,
+          PrefetchHooks Function({bool personId})
+        > {
+  $$WeeklyGoalsTableTableManager(_$AppDatabase db, $WeeklyGoalsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyGoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyGoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyGoalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> personId = const Value.absent(),
+                Value<int> targetSessions = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WeeklyGoalsCompanion(
+                personId: personId,
+                targetSessions: targetSessions,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String personId,
+                Value<int> targetSessions = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WeeklyGoalsCompanion.insert(
+                personId: personId,
+                targetSessions: targetSessions,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WeeklyGoalsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({personId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (personId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.personId,
+                                referencedTable: $$WeeklyGoalsTableReferences
+                                    ._personIdTable(db),
+                                referencedColumn: $$WeeklyGoalsTableReferences
+                                    ._personIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$WeeklyGoalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyGoalsTable,
+      WeeklyGoal,
+      $$WeeklyGoalsTableFilterComposer,
+      $$WeeklyGoalsTableOrderingComposer,
+      $$WeeklyGoalsTableAnnotationComposer,
+      $$WeeklyGoalsTableCreateCompanionBuilder,
+      $$WeeklyGoalsTableUpdateCompanionBuilder,
+      (WeeklyGoal, $$WeeklyGoalsTableReferences),
+      WeeklyGoal,
+      PrefetchHooks Function({bool personId})
+    >;
+typedef $$BadgesTableCreateCompanionBuilder =
+    BadgesCompanion Function({
+      required String id,
+      required String personId,
+      required String badgeType,
+      required DateTime unlockedAt,
+      Value<int> rowid,
+    });
+typedef $$BadgesTableUpdateCompanionBuilder =
+    BadgesCompanion Function({
+      Value<String> id,
+      Value<String> personId,
+      Value<String> badgeType,
+      Value<DateTime> unlockedAt,
+      Value<int> rowid,
+    });
+
+final class $$BadgesTableReferences
+    extends BaseReferences<_$AppDatabase, $BadgesTable, Badge> {
+  $$BadgesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $PersonsTable _personIdTable(_$AppDatabase db) =>
+      db.persons.createAlias('badges__person_id__persons__id');
+
+  $$PersonsTableProcessedTableManager get personId {
+    final $_column = $_itemColumn<String>('person_id')!;
+
+    final manager = $$PersonsTableTableManager(
+      $_db,
+      $_db.persons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_personIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BadgesTableFilterComposer
+    extends Composer<_$AppDatabase, $BadgesTable> {
+  $$BadgesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get badgeType => $composableBuilder(
+    column: $table.badgeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PersonsTableFilterComposer get personId {
+    final $$PersonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PersonsTableFilterComposer(
+            $db: $db,
+            $table: $db.persons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BadgesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BadgesTable> {
+  $$BadgesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get badgeType => $composableBuilder(
+    column: $table.badgeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PersonsTableOrderingComposer get personId {
+    final $$PersonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PersonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.persons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BadgesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BadgesTable> {
+  $$BadgesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get badgeType =>
+      $composableBuilder(column: $table.badgeType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => column,
+  );
+
+  $$PersonsTableAnnotationComposer get personId {
+    final $$PersonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.persons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PersonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.persons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BadgesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BadgesTable,
+          Badge,
+          $$BadgesTableFilterComposer,
+          $$BadgesTableOrderingComposer,
+          $$BadgesTableAnnotationComposer,
+          $$BadgesTableCreateCompanionBuilder,
+          $$BadgesTableUpdateCompanionBuilder,
+          (Badge, $$BadgesTableReferences),
+          Badge,
+          PrefetchHooks Function({bool personId})
+        > {
+  $$BadgesTableTableManager(_$AppDatabase db, $BadgesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BadgesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BadgesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BadgesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> personId = const Value.absent(),
+                Value<String> badgeType = const Value.absent(),
+                Value<DateTime> unlockedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BadgesCompanion(
+                id: id,
+                personId: personId,
+                badgeType: badgeType,
+                unlockedAt: unlockedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String personId,
+                required String badgeType,
+                required DateTime unlockedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BadgesCompanion.insert(
+                id: id,
+                personId: personId,
+                badgeType: badgeType,
+                unlockedAt: unlockedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$BadgesTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({personId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (personId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.personId,
+                                referencedTable: $$BadgesTableReferences
+                                    ._personIdTable(db),
+                                referencedColumn: $$BadgesTableReferences
+                                    ._personIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BadgesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BadgesTable,
+      Badge,
+      $$BadgesTableFilterComposer,
+      $$BadgesTableOrderingComposer,
+      $$BadgesTableAnnotationComposer,
+      $$BadgesTableCreateCompanionBuilder,
+      $$BadgesTableUpdateCompanionBuilder,
+      (Badge, $$BadgesTableReferences),
+      Badge,
+      PrefetchHooks Function({bool personId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3015,4 +4375,8 @@ class $AppDatabaseManager {
       $$FoodsTableTableManager(_db, _db.foods);
   $$SessionsTableTableManager get sessions =>
       $$SessionsTableTableManager(_db, _db.sessions);
+  $$WeeklyGoalsTableTableManager get weeklyGoals =>
+      $$WeeklyGoalsTableTableManager(_db, _db.weeklyGoals);
+  $$BadgesTableTableManager get badges =>
+      $$BadgesTableTableManager(_db, _db.badges);
 }
