@@ -15,9 +15,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  int _dataVersion = 0;
   Person? _selectedPerson;
   List<Person> _persons = [];
   Family? _family;
+
+  void _refreshData() {
+    setState(() => _dataVersion++);
+  }
 
   @override
   void initState() {
@@ -245,10 +250,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : _currentIndex == 0
-                    ? DashboardScreen(person: _selectedPerson!)
+                    ? DashboardScreen(
+                        key: ValueKey('dashboard_$_dataVersion'),
+                        person: _selectedPerson!,
+                      )
                     : _currentIndex == 1
-                        ? FoodListScreen(person: _selectedPerson!)
-                        : CalendarScreen(person: _selectedPerson!),
+                        ? FoodListScreen(
+                            key: ValueKey('foodlist_$_dataVersion'),
+                            person: _selectedPerson!,
+                          )
+                        : CalendarScreen(
+                            person: _selectedPerson!,
+                            onDataChanged: _refreshData,
+                          ),
           ),
         ],
       ),

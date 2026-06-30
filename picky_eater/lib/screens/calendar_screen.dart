@@ -6,8 +6,13 @@ import '../main.dart';
 
 class CalendarScreen extends StatefulWidget {
   final Person person;
+  final VoidCallback onDataChanged;
 
-  const CalendarScreen({super.key, required this.person});
+  const CalendarScreen({
+    super.key,
+    required this.person,
+    required this.onDataChanged,
+  });
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -59,7 +64,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         date: day,
         foods: _foods,
         personId: widget.person.id,
-        onSave: () => _loadSessionsForDay(day),
+        onSave: () {
+          _loadSessionsForDay(day);
+          widget.onDataChanged();
+        },
       ),
     );
   }
@@ -77,6 +85,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           final newBadges = await database.checkAndUnlockBadges(
               widget.person.id, food.id, achievedLevel);
           if (_selectedDay != null) _loadSessionsForDay(_selectedDay!);
+          widget.onDataChanged();
           if (newBadges.isNotEmpty && mounted) {
             for (final badge in newBadges) {
               _showBadgeUnlockedDialog(badge);
