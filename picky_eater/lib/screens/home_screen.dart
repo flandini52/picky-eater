@@ -15,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  int _dataVersion = 0;
   Person? _selectedPerson;
   List<Person> _persons = [];
   Family? _family;
@@ -116,6 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (_) => EditPersonScreen(person: person)),
     );
     if (result == true) await _initData();
+  }
+
+  void _refreshData() {
+    setState(() => _dataVersion++);
   }
 
   void _openPersonMenu() {
@@ -245,10 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : _currentIndex == 0
-                    ? DashboardScreen(person: _selectedPerson!)
+                    ? DashboardScreen(key: ValueKey('dashboard_\$_dataVersion'), person: _selectedPerson!)
                     : _currentIndex == 1
-                        ? FoodListScreen(person: _selectedPerson!)
-                        : CalendarScreen(person: _selectedPerson!),
+                        ? FoodListScreen(key: ValueKey('foodlist_\$_dataVersion'), person: _selectedPerson!)
+                        : CalendarScreen(key: ValueKey('calendar_\$_dataVersion'), person: _selectedPerson!, onDataChanged: _refreshData),
           ),
         ],
       ),
