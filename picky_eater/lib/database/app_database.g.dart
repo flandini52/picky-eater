@@ -1018,6 +1018,28 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _achievedActivityMeta = const VerificationMeta(
+    'achievedActivity',
+  );
+  @override
+  late final GeneratedColumn<String> achievedActivity = GeneratedColumn<String>(
+    'achieved_activity',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _outcomeMeta = const VerificationMeta(
+    'outcome',
+  );
+  @override
+  late final GeneratedColumn<String> outcome = GeneratedColumn<String>(
+    'outcome',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1036,6 +1058,8 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     targetLevel,
     activity,
     achievedLevel,
+    achievedActivity,
+    outcome,
     notes,
   ];
   @override
@@ -1105,6 +1129,21 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         ),
       );
     }
+    if (data.containsKey('achieved_activity')) {
+      context.handle(
+        _achievedActivityMeta,
+        achievedActivity.isAcceptableOrUnknown(
+          data['achieved_activity']!,
+          _achievedActivityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('outcome')) {
+      context.handle(
+        _outcomeMeta,
+        outcome.isAcceptableOrUnknown(data['outcome']!, _outcomeMeta),
+      );
+    }
     if (data.containsKey('notes')) {
       context.handle(
         _notesMeta,
@@ -1148,6 +1187,14 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.int,
         data['${effectivePrefix}achieved_level'],
       ),
+      achievedActivity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}achieved_activity'],
+      ),
+      outcome: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}outcome'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -1169,6 +1216,8 @@ class Session extends DataClass implements Insertable<Session> {
   final int targetLevel;
   final String? activity;
   final int? achievedLevel;
+  final String? achievedActivity;
+  final String? outcome;
   final String? notes;
   const Session({
     required this.id,
@@ -1178,6 +1227,8 @@ class Session extends DataClass implements Insertable<Session> {
     required this.targetLevel,
     this.activity,
     this.achievedLevel,
+    this.achievedActivity,
+    this.outcome,
     this.notes,
   });
   @override
@@ -1193,6 +1244,12 @@ class Session extends DataClass implements Insertable<Session> {
     }
     if (!nullToAbsent || achievedLevel != null) {
       map['achieved_level'] = Variable<int>(achievedLevel);
+    }
+    if (!nullToAbsent || achievedActivity != null) {
+      map['achieved_activity'] = Variable<String>(achievedActivity);
+    }
+    if (!nullToAbsent || outcome != null) {
+      map['outcome'] = Variable<String>(outcome);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -1213,6 +1270,12 @@ class Session extends DataClass implements Insertable<Session> {
       achievedLevel: achievedLevel == null && nullToAbsent
           ? const Value.absent()
           : Value(achievedLevel),
+      achievedActivity: achievedActivity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(achievedActivity),
+      outcome: outcome == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outcome),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -1232,6 +1295,8 @@ class Session extends DataClass implements Insertable<Session> {
       targetLevel: serializer.fromJson<int>(json['targetLevel']),
       activity: serializer.fromJson<String?>(json['activity']),
       achievedLevel: serializer.fromJson<int?>(json['achievedLevel']),
+      achievedActivity: serializer.fromJson<String?>(json['achievedActivity']),
+      outcome: serializer.fromJson<String?>(json['outcome']),
       notes: serializer.fromJson<String?>(json['notes']),
     );
   }
@@ -1246,6 +1311,8 @@ class Session extends DataClass implements Insertable<Session> {
       'targetLevel': serializer.toJson<int>(targetLevel),
       'activity': serializer.toJson<String?>(activity),
       'achievedLevel': serializer.toJson<int?>(achievedLevel),
+      'achievedActivity': serializer.toJson<String?>(achievedActivity),
+      'outcome': serializer.toJson<String?>(outcome),
       'notes': serializer.toJson<String?>(notes),
     };
   }
@@ -1258,6 +1325,8 @@ class Session extends DataClass implements Insertable<Session> {
     int? targetLevel,
     Value<String?> activity = const Value.absent(),
     Value<int?> achievedLevel = const Value.absent(),
+    Value<String?> achievedActivity = const Value.absent(),
+    Value<String?> outcome = const Value.absent(),
     Value<String?> notes = const Value.absent(),
   }) => Session(
     id: id ?? this.id,
@@ -1269,6 +1338,10 @@ class Session extends DataClass implements Insertable<Session> {
     achievedLevel: achievedLevel.present
         ? achievedLevel.value
         : this.achievedLevel,
+    achievedActivity: achievedActivity.present
+        ? achievedActivity.value
+        : this.achievedActivity,
+    outcome: outcome.present ? outcome.value : this.outcome,
     notes: notes.present ? notes.value : this.notes,
   );
   Session copyWithCompanion(SessionsCompanion data) {
@@ -1284,6 +1357,10 @@ class Session extends DataClass implements Insertable<Session> {
       achievedLevel: data.achievedLevel.present
           ? data.achievedLevel.value
           : this.achievedLevel,
+      achievedActivity: data.achievedActivity.present
+          ? data.achievedActivity.value
+          : this.achievedActivity,
+      outcome: data.outcome.present ? data.outcome.value : this.outcome,
       notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
@@ -1298,6 +1375,8 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('targetLevel: $targetLevel, ')
           ..write('activity: $activity, ')
           ..write('achievedLevel: $achievedLevel, ')
+          ..write('achievedActivity: $achievedActivity, ')
+          ..write('outcome: $outcome, ')
           ..write('notes: $notes')
           ..write(')'))
         .toString();
@@ -1312,6 +1391,8 @@ class Session extends DataClass implements Insertable<Session> {
     targetLevel,
     activity,
     achievedLevel,
+    achievedActivity,
+    outcome,
     notes,
   );
   @override
@@ -1325,6 +1406,8 @@ class Session extends DataClass implements Insertable<Session> {
           other.targetLevel == this.targetLevel &&
           other.activity == this.activity &&
           other.achievedLevel == this.achievedLevel &&
+          other.achievedActivity == this.achievedActivity &&
+          other.outcome == this.outcome &&
           other.notes == this.notes);
 }
 
@@ -1336,6 +1419,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<int> targetLevel;
   final Value<String?> activity;
   final Value<int?> achievedLevel;
+  final Value<String?> achievedActivity;
+  final Value<String?> outcome;
   final Value<String?> notes;
   final Value<int> rowid;
   const SessionsCompanion({
@@ -1346,6 +1431,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.targetLevel = const Value.absent(),
     this.activity = const Value.absent(),
     this.achievedLevel = const Value.absent(),
+    this.achievedActivity = const Value.absent(),
+    this.outcome = const Value.absent(),
     this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1357,6 +1444,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     required int targetLevel,
     this.activity = const Value.absent(),
     this.achievedLevel = const Value.absent(),
+    this.achievedActivity = const Value.absent(),
+    this.outcome = const Value.absent(),
     this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1372,6 +1461,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<int>? targetLevel,
     Expression<String>? activity,
     Expression<int>? achievedLevel,
+    Expression<String>? achievedActivity,
+    Expression<String>? outcome,
     Expression<String>? notes,
     Expression<int>? rowid,
   }) {
@@ -1383,6 +1474,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       if (targetLevel != null) 'target_level': targetLevel,
       if (activity != null) 'activity': activity,
       if (achievedLevel != null) 'achieved_level': achievedLevel,
+      if (achievedActivity != null) 'achieved_activity': achievedActivity,
+      if (outcome != null) 'outcome': outcome,
       if (notes != null) 'notes': notes,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1396,6 +1489,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<int>? targetLevel,
     Value<String?>? activity,
     Value<int?>? achievedLevel,
+    Value<String?>? achievedActivity,
+    Value<String?>? outcome,
     Value<String?>? notes,
     Value<int>? rowid,
   }) {
@@ -1407,6 +1502,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       targetLevel: targetLevel ?? this.targetLevel,
       activity: activity ?? this.activity,
       achievedLevel: achievedLevel ?? this.achievedLevel,
+      achievedActivity: achievedActivity ?? this.achievedActivity,
+      outcome: outcome ?? this.outcome,
       notes: notes ?? this.notes,
       rowid: rowid ?? this.rowid,
     );
@@ -1436,6 +1533,12 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     if (achievedLevel.present) {
       map['achieved_level'] = Variable<int>(achievedLevel.value);
     }
+    if (achievedActivity.present) {
+      map['achieved_activity'] = Variable<String>(achievedActivity.value);
+    }
+    if (outcome.present) {
+      map['outcome'] = Variable<String>(outcome.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -1455,6 +1558,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('targetLevel: $targetLevel, ')
           ..write('activity: $activity, ')
           ..write('achievedLevel: $achievedLevel, ')
+          ..write('achievedActivity: $achievedActivity, ')
+          ..write('outcome: $outcome, ')
           ..write('notes: $notes, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3348,6 +3453,8 @@ typedef $$SessionsTableCreateCompanionBuilder =
       required int targetLevel,
       Value<String?> activity,
       Value<int?> achievedLevel,
+      Value<String?> achievedActivity,
+      Value<String?> outcome,
       Value<String?> notes,
       Value<int> rowid,
     });
@@ -3360,6 +3467,8 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<int> targetLevel,
       Value<String?> activity,
       Value<int?> achievedLevel,
+      Value<String?> achievedActivity,
+      Value<String?> outcome,
       Value<String?> notes,
       Value<int> rowid,
     });
@@ -3434,6 +3543,16 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<int> get achievedLevel => $composableBuilder(
     column: $table.achievedLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get achievedActivity => $composableBuilder(
+    column: $table.achievedActivity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get outcome => $composableBuilder(
+    column: $table.outcome,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3523,6 +3642,16 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get achievedActivity => $composableBuilder(
+    column: $table.achievedActivity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get outcome => $composableBuilder(
+    column: $table.outcome,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -3602,6 +3731,14 @@ class $$SessionsTableAnnotationComposer
     column: $table.achievedLevel,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get achievedActivity => $composableBuilder(
+    column: $table.achievedActivity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get outcome =>
+      $composableBuilder(column: $table.outcome, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -3688,6 +3825,8 @@ class $$SessionsTableTableManager
                 Value<int> targetLevel = const Value.absent(),
                 Value<String?> activity = const Value.absent(),
                 Value<int?> achievedLevel = const Value.absent(),
+                Value<String?> achievedActivity = const Value.absent(),
+                Value<String?> outcome = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion(
@@ -3698,6 +3837,8 @@ class $$SessionsTableTableManager
                 targetLevel: targetLevel,
                 activity: activity,
                 achievedLevel: achievedLevel,
+                achievedActivity: achievedActivity,
+                outcome: outcome,
                 notes: notes,
                 rowid: rowid,
               ),
@@ -3710,6 +3851,8 @@ class $$SessionsTableTableManager
                 required int targetLevel,
                 Value<String?> activity = const Value.absent(),
                 Value<int?> achievedLevel = const Value.absent(),
+                Value<String?> achievedActivity = const Value.absent(),
+                Value<String?> outcome = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion.insert(
@@ -3720,6 +3863,8 @@ class $$SessionsTableTableManager
                 targetLevel: targetLevel,
                 activity: activity,
                 achievedLevel: achievedLevel,
+                achievedActivity: achievedActivity,
+                outcome: outcome,
                 notes: notes,
                 rowid: rowid,
               ),

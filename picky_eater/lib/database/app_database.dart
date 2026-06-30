@@ -49,6 +49,26 @@ extension ExposureLevelExtension on ExposureLevel {
   }
 }
 
+// Mantenuto per compatibilità con dati storici, non più usato attivamente
+enum SessionOutcome {
+  success,
+  partial,
+  exceeded,
+}
+
+extension SessionOutcomeExtension on SessionOutcome {
+  String get label {
+    switch (this) {
+      case SessionOutcome.success:
+        return 'Obiettivo raggiunto';
+      case SessionOutcome.partial:
+        return 'Ci ha provato';
+      case SessionOutcome.exceeded:
+        return 'È andato oltre l\'obiettivo';
+    }
+  }
+}
+
 const Map<ExposureLevel, List<String>> levelActivities = {
   ExposureLevel.tolerates: [
     'Stare nella stessa stanza con il cibo',
@@ -81,6 +101,29 @@ const Map<ExposureLevel, List<String>> levelActivities = {
     'Mangiare autonomamente',
   ],
 };
+
+/// Calcola l'indice granulare (0-17) di un'attività specifica.
+/// Restituisce -1 se non trovata.
+int granularIndexForActivity(String? activity) {
+  if (activity == null) return -1;
+  for (final level in ExposureLevel.values) {
+    final activities = levelActivities[level] ?? [];
+    final pos = activities.indexOf(activity);
+    if (pos != -1) {
+      return level.index * 3 + pos;
+    }
+  }
+  return -1;
+}
+
+/// Etichetta breve per un indice granulare, utile per i grafici
+String granularLabel(int granularIndex) {
+  final levelIndex = granularIndex ~/ 3;
+  if (levelIndex < 0 || levelIndex >= ExposureLevel.values.length) return '';
+  return ExposureLevel.values[levelIndex].label;
+}
+
+
 
 enum BadgeType {
   firstSession,
@@ -206,8 +249,10 @@ class Sessions extends Table {
   TextColumn get foodId => text().references(Foods, #id)();
   DateTimeColumn get date => dateTime()();
   IntColumn get targetLevel => integer()();
-  TextColumn get activity => text().nullable()(); // NUOVO
+  TextColumn get activity => text().nullable()();
   IntColumn get achievedLevel => integer().nullable()();
+  TextColumn get achievedActivity => text().nullable()(); // NUOVO: attività SOS specifica raggiunta
+  TextColumn get outcome => text().nullable()(); // legacy, non più scritto attivamente
   TextColumn get notes => text().nullable()();
 
   @override
@@ -239,7 +284,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'picky_eater_db');
@@ -254,6 +299,12 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.createTable(weeklyGoals);
             await m.createTable(badges);
+          }
+          if (from < 4) {
+            await m.addColumn(sessions, sessions.outcome);
+          }
+          if (from < 5) {
+            await m.addColumn(sessions, sessions.achievedActivity);
           }
         },
       );
@@ -314,10 +365,10 @@ class AppDatabase extends _$AppDatabase {
       (update(foods)..where((f) => f.id.equals(foodId)))
           .write(FoodsCompanion(currentLevel: Value(level)));
       
-Future<String> getFoodName(String foodId) async {
-  final food = await (select(foods)..where((f) => f.id.equals(foodId))).getSingle();
-  return food.name;
-}
+  Future<String> getFoodName(String foodId) async {
+    final food = await (select(foods)..where((f) => f.id.equals(foodId))).getSingle();
+    return food.name;
+  }
   
 
   // --- Sessions ---
@@ -349,13 +400,21 @@ Future<int> getSessionCountForFood(String foodId) async {
       into(sessions).insert(session);
 
   Future<void> completeSession(
-      String sessionId, int achievedLevel, String? notes) =>
+      String sessionId, int achievedLevel, String? achievedActivity, String? notes) =>
       (update(sessions)..where((s) => s.id.equals(sessionId))).write(
         SessionsCompanion(
           achievedLevel: Value(achievedLevel),
+          achievedActivity: Value(achievedActivity),
           notes: Value(notes),
         ),
       );
+  Future<List<Session>> getCompletedSessionsForFood(String foodId) async {
+  return (select(sessions)
+        ..where((s) =>
+            s.foodId.equals(foodId) & s.achievedLevel.isNotNull())
+        ..orderBy([(s) => OrderingTerm.asc(s.date)]))
+      .get();
+}
 
   // --- Weekly Goals ---
   Future<int> getWeeklyGoal(String personId) async {

@@ -35,19 +35,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-Future<void> _loadFoods() async {
-  final foods = await database.getFoodsByPerson(widget.person.id);
-  if (!mounted) return;
-  setState(() => _foods = foods);
-}
+  Future<void> _loadFoods() async {
+    final foods = await database.getFoodsByPerson(widget.person.id);
+    if (!mounted) return;
+    setState(() => _foods = foods);
+  }
 
-Future<void> _loadSessionsForDay(DateTime day) async {
-  final normalized = DateTime(day.year, day.month, day.day);
-  final sessions = await database.getSessionsByPersonAndDate(
-      widget.person.id, normalized);
-  if (!mounted) return;
-  setState(() => _sessionsForDay = sessions);
-}
+  Future<void> _loadSessionsForDay(DateTime day) async {
+    final normalized = DateTime(day.year, day.month, day.day);
+    final sessions = await database.getSessionsByPersonAndDate(
+        widget.person.id, normalized);
+    if (!mounted) return;
+    setState(() => _sessionsForDay = sessions);
+  }
 
   Future<List<Session>> _getSessionsForDay(DateTime day) async {
     final normalized = DateTime(day.year, day.month, day.day);
@@ -78,8 +78,9 @@ Future<void> _loadSessionsForDay(DateTime day) async {
       builder: (_) => _CompleteSessionSheet(
         session: session,
         food: food,
-        onSave: (achievedLevel, notes) async {
-          await database.completeSession(session.id, achievedLevel, notes);
+        onSave: (achievedLevel, achievedActivity, notes) async {
+          await database.completeSession(
+              session.id, achievedLevel, achievedActivity, notes);
           if (achievedLevel > food.currentLevel) {
             await database.updateFoodLevel(food.id, achievedLevel);
           }
@@ -147,6 +148,37 @@ Future<void> _loadSessionsForDay(DateTime day) async {
     );
   }
 
+  // Calcola un badge testuale tenue confrontando achieved vs target, senza emoji vistose
+  Widget _outcomeBadge(int targetLevel, int achievedLevel) {
+    String text;
+    Color bg;
+    Color fg;
+    if (achievedLevel > targetLevel) {
+      text = 'Andato oltre l\'obiettivo';
+      bg = Colors.blue.shade50;
+      fg = Colors.blue.shade700;
+    } else if (achievedLevel == targetLevel) {
+      text = 'Obiettivo raggiunto';
+      bg = Colors.green.shade50;
+      fg = Colors.green.shade700;
+    } else {
+      text = 'Ci ha provato';
+      bg = Colors.amber.shade50;
+      fg = Colors.amber.shade800;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -209,19 +241,21 @@ Future<void> _loadSessionsForDay(DateTime day) async {
                       itemCount: _sessionsForDay.length,
                       itemBuilder: (context, index) {
                         final session = _sessionsForDay[index];
-                        final targetLevel = ExposureLevel.values[session.targetLevel];
+                        final targetLevel =
+                            ExposureLevel.values[session.targetLevel];
                         final achieved = session.achievedLevel != null
                             ? ExposureLevel.values[session.achievedLevel!]
                             : null;
-                        
+
                         // Trova il nome del cibo dalla lista già caricata
                         final food = _foods.firstWhere(
                           (f) => f.id == session.foodId,
                           orElse: () => _foods.first,
                         );
-                        
+
                         return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
                           child: ListTile(
                             title: Text(food.name),
                             subtitle: Column(
@@ -236,11 +270,37 @@ Future<void> _loadSessionsForDay(DateTime day) async {
                                       color: Colors.grey.shade600,
                                     ),
                                   ),
+                                if (achieved != null &&
+                                    session.achievedActivity != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      '✓ ${session.achievedActivity}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
-                            isThreeLine: session.activity != null,
+                            isThreeLine: session.activity != null ||
+                                session.achievedActivity != null,
                             trailing: achieved != null
-                                ? Text(achieved.label)
+                                ? Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.end,
+                                    children: [
+                                      Text(achieved.label,
+                                          style:
+                                              const TextStyle(fontSize: 12)),
+                                      const SizedBox(height: 4),
+                                      _outcomeBadge(session.targetLevel,
+                                          session.achievedLevel!),
+                                    ],
+                                  )
                                 : ElevatedButton(
                                     onPressed: () => _completeSession(session),
                                     style: ElevatedButton.styleFrom(
@@ -406,10 +466,16 @@ class _AddSessionSheetState extends State<_AddSessionSheet> {
   }
 }
 
+/// Nuovo flusso semplificato:
+/// 1) Livello più alto raggiunto oggi (i 6 livelli SOS)
+/// 2) Attività specifica completata (filtrata in base al livello scelto)
+/// 3) Note opzionali
+/// L'esito (badge) viene dedotto automaticamente confrontando con il target,
+/// non viene più chiesto esplicitamente.
 class _CompleteSessionSheet extends StatefulWidget {
   final Session session;
   final Food food;
-  final Future<void> Function(int, String?) onSave;
+  final Future<void> Function(int, String?, String?) onSave;
 
   const _CompleteSessionSheet({
     required this.session,
@@ -423,16 +489,39 @@ class _CompleteSessionSheet extends StatefulWidget {
 
 class _CompleteSessionSheetState extends State<_CompleteSessionSheet> {
   late ExposureLevel selectedLevel;
+  String? selectedActivity;
   final TextEditingController notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    // Preselezioniamo il livello target della sessione come punto di partenza
     selectedLevel = ExposureLevel.values[widget.session.targetLevel];
+  }
+
+  Color _badgeBg(int target, int achieved) {
+    if (achieved > target) return Colors.blue.shade50;
+    if (achieved == target) return Colors.green.shade50;
+    return Colors.amber.shade50;
+  }
+
+  Color _badgeFg(int target, int achieved) {
+    if (achieved > target) return Colors.blue.shade700;
+    if (achieved == target) return Colors.green.shade700;
+    return Colors.amber.shade800;
+  }
+
+  String _badgeText(int target, int achieved) {
+    if (achieved > target) return 'Andato oltre l\'obiettivo di oggi';
+    if (achieved == target) return 'Obiettivo raggiunto';
+    return 'Ci ha provato';
   }
 
   @override
   Widget build(BuildContext context) {
+    final targetLevel = ExposureLevel.values[widget.session.targetLevel];
+    final activitiesForLevel = levelActivities[selectedLevel] ?? [];
+
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -440,68 +529,167 @@ class _CompleteSessionSheetState extends State<_CompleteSessionSheet> {
         top: 16,
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.check_circle_outline, size: 24),
-              const SizedBox(width: 8),
-              const Text(
-                'Completa sessione',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.check_circle_outline, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'Registra sessione',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.food.name} · Obiettivo: ${targetLevel.label}',
+              style: const TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            // Badge automatico, calcolato dal confronto livello scelto vs target
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _badgeBg(widget.session.targetLevel, selectedLevel.index),
+                borderRadius: BorderRadius.circular(20),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Cibo: ${widget.food.name}',
-            style: const TextStyle(fontSize: 16, color: Colors.black54),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<ExposureLevel>(
-            value: selectedLevel,
-            items: ExposureLevel.values
-                .map((l) => DropdownMenuItem(value: l, child: Text(l.label)))
-                .toList(),
-            onChanged: (value) => setState(() => selectedLevel = value!),
-            decoration: const InputDecoration(
-              labelText: 'Livello raggiunto',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: notesController,
-            decoration: const InputDecoration(
-              labelText: 'Note (opzionale)',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                await widget.onSave(
-                  selectedLevel.index,
-                  notesController.text.isEmpty
-                      ? null
-                      : notesController.text,
-                );
-                if (context.mounted) Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                _badgeText(widget.session.targetLevel, selectedLevel.index),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _badgeFg(widget.session.targetLevel, selectedLevel.index),
+                ),
               ),
-              child: const Text('Salva'),
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            const Text('Qual è il livello più alto raggiunto oggi?',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            ...ExposureLevel.values.map((level) {
+              final isSelected = selectedLevel == level;
+              return GestureDetector(
+                onTap: () => setState(() {
+                  selectedLevel = level;
+                  selectedActivity = null; // reset attività se cambia livello
+                }),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.orange.shade100
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? Colors.orange : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color: isSelected ? Colors.orange : Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(level.label,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500)),
+                            Text(level.description,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            const Text('Quale attività ha completato?',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            ...activitiesForLevel.map((activity) {
+              final isSelected = selectedActivity == activity;
+              return GestureDetector(
+                onTap: () => setState(() => selectedActivity = activity),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.orange.shade100
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? Colors.orange : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color: isSelected ? Colors.orange : Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(activity)),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Note (opzionale)',
+                border: OutlineInputBorder(),
+                hintText: 'Come si è comportato? Reazioni particolari?',
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  await widget.onSave(
+                    selectedLevel.index,
+                    selectedActivity,
+                    notesController.text.isEmpty
+                        ? null
+                        : notesController.text,
+                  );
+                  if (context.mounted) Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Salva sessione'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
