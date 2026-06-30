@@ -250,10 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : _currentIndex == 0
-                    ? DashboardScreen(key: ValueKey('dashboard_\$_dataVersion'), person: _selectedPerson!)
+                    ? DashboardScreen(key: ValueKey('dashboard_$_dataVersion'), person: _selectedPerson!)
                     : _currentIndex == 1
-                        ? FoodListScreen(key: ValueKey('foodlist_\$_dataVersion'), person: _selectedPerson!)
-                        : CalendarScreen(key: ValueKey('calendar_\$_dataVersion'), person: _selectedPerson!, onDataChanged: _refreshData),
+                        ? FoodListScreen(key: ValueKey('foodlist_$_dataVersion'), person: _selectedPerson!)
+                        : CalendarScreen(key: ValueKey('calendar_$_dataVersion'), person: _selectedPerson!, onDataChanged: _refreshData),
           ),
         ],
       ),
