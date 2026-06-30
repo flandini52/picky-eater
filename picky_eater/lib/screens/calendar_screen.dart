@@ -80,10 +80,14 @@ Future<void> _loadSessionsForDay(DateTime day) async {
         food: food,
         onSave: (achievedLevel, notes) async {
           await database.completeSession(session.id, achievedLevel, notes);
+          if (achievedLevel > food.currentLevel) {
+            await database.updateFoodLevel(food.id, achievedLevel);
+          }
           final newBadges = await database.checkAndUnlockBadges(
               widget.person.id, food.id, achievedLevel);
-          if (_selectedDay != null) _loadSessionsForDay(_selectedDay!);
-            if (widget.onDataChanged != null) widget.onDataChanged!();              if (newBadges.isNotEmpty && mounted) {
+          if (_selectedDay != null) await _loadSessionsForDay(_selectedDay!);
+          if (widget.onDataChanged != null) widget.onDataChanged!();
+          if (newBadges.isNotEmpty && mounted) {
             for (final badge in newBadges) {
               _showBadgeUnlockedDialog(badge);
             }
@@ -405,7 +409,7 @@ class _AddSessionSheetState extends State<_AddSessionSheet> {
 class _CompleteSessionSheet extends StatefulWidget {
   final Session session;
   final Food food;
-  final Function(int, String?) onSave;
+  final Future<void> Function(int, String?) onSave;
 
   const _CompleteSessionSheet({
     required this.session,
@@ -480,14 +484,14 @@ class _CompleteSessionSheetState extends State<_CompleteSessionSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                widget.onSave(
+              onPressed: () async {
+                await widget.onSave(
                   selectedLevel.index,
                   notesController.text.isEmpty
                       ? null
                       : notesController.text,
                 );
-                Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
