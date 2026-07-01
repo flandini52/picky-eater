@@ -1,56 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
-import '../main.dart';
+import '../models/person_entity.dart';
+import '../providers/person_provider.dart';
+import '../providers/dashboard_provider.dart';
 import 'food_list_screen.dart';
 import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
 import 'edit_person_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
   int _dataVersion = 0;
-  Person? _selectedPerson;
-  List<Person> _persons = [];
-  Family? _family;
 
-  @override
-  void initState() {
-    super.initState();
-    _initData();
-  }
-
-  Future<void> _initData() async {
-    try {
-      final families = await database.getAllFamilies();
-      if (families.isEmpty) {
-        await database.insertFamily(
-          FamiliesCompanion.insert(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            name: 'La mia famiglia',
-          ),
-        );
-      }
-      final family = (await database.getAllFamilies()).first;
-      final persons = await database.getPersonsByFamily(family.id);
-      setState(() {
-        _family = family;
-        _persons = persons;
-        _selectedPerson = persons.isNotEmpty
-            ? (_selectedPerson != null &&
-                    persons.any((p) => p.id == _selectedPerson!.id)
-                ? persons.firstWhere((p) => p.id == _selectedPerson!.id)
-                : persons.first)
-            : null;
-      });
-    } catch (e) {
-      debugPrint('Errore initData: $e');
+  void _refreshData() {
+    setState(() => _dataVersion++);
+    // Invalida anche la dashboard Riverpod
+    final personId =
+        ref.read(familyProvider).valueOrNull?.selectedPerson?.id;
+    if (personId != null) {
+      ref.invalidate(dashboardProvider(personId));
     }
   }
 
@@ -77,19 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               if (nameController.text.isEmpty) return;
               try {
-                await database.insertPerson(
-                  PersonsCompanion.insert(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    familyId: _family!.id,
-                    name: nameController.text,
-                  ),
-                );
-                final persons =
-                    await database.getPersonsByFamily(_family!.id);
-                setState(() {
-                  _persons = persons;
-                  _selectedPerson = persons.last;
-                });
+                await ref
+                    .read(familyProvider.notifier)
+                    .addPerson(nameController.text);
                 if (context.mounted) Navigator.pop(context);
               } catch (e) {
                 debugPrint('Errore addPerson: $e');
@@ -111,25 +77,35 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _editPerson(Person person) async {
+  Future<void> _editPerson(PersonEntity person) async {
+    // Convertiamo PersonEntity in Person per la schermata di modifica
+    // che per ora usa ancora i tipi Drift — lo migreremo nel passo successivo
+    final driftPerson = Person(
+      id: person.id,
+      familyId: person.familyId,
+      name: person.name,
+      birthDate: person.birthDate,
+      avatarColor: person.avatarColor,
+    );
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => EditPersonScreen(person: person)),
+      MaterialPageRoute(
+          builder: (_) => EditPersonScreen(person: driftPerson)),
     );
-    if (result == true) await _initData();
+    if (result == true) {
+      await ref.read(familyProvider.notifier).refresh();
+    }
   }
 
-void _refreshData() {
-  setState(() => _dataVersion++);
-}
-
-  void _openPersonMenu() {
+  void _openPersonMenu(
+      List<PersonEntity> persons, PersonEntity? selected) {
     showMenu<void>(
       context: context,
       position: const RelativeRect.fromLTRB(16, 90, 200, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: [
-        ..._persons.map(
+        ...persons.map(
           (p) => PopupMenuItem<void>(
             padding: const EdgeInsets.only(left: 12, right: 4),
             child: Row(
@@ -138,7 +114,7 @@ void _refreshData() {
                   child: Text(
                     p.name,
                     style: TextStyle(
-                      fontWeight: _selectedPerson?.id == p.id
+                      fontWeight: selected?.id == p.id
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),
@@ -153,7 +129,8 @@ void _refreshData() {
                 ),
               ],
             ),
-            onTap: () => setState(() => _selectedPerson = p),
+            onTap: () =>
+                ref.read(familyProvider.notifier).selectPerson(p),
           ),
         ),
         const PopupMenuDivider(),
@@ -185,97 +162,148 @@ void _refreshData() {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            color: Colors.orange,
-            padding: const EdgeInsets.only(
-                top: 30, left: 12, right: 4, bottom: 6),
-            child: Row(
-              children: [
-                InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: _family == null
-                      ? null
-                      : (_persons.isEmpty ? _addPerson : _openPersonMenu),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _selectedPerson?.name ?? 'Aggiungi persona',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_drop_down,
-                            color: Colors.white, size: 20),
-                      ],
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.settings,
-                      color: Colors.white, size: 20),
-                  onPressed: _openSettings,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _selectedPerson == null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('Nessuna persona ancora.'),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _family == null ? null : _addPerson,
-                          icon: const Icon(Icons.person_add),
-                          label: const Text('Aggiungi persona'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _currentIndex == 0
-                    ? DashboardScreen(key: ValueKey('dashboard_$_dataVersion'), person: _selectedPerson!)
-                    : _currentIndex == 1
-                        ? FoodListScreen(key: ValueKey('foodlist_$_dataVersion'), person: _selectedPerson!)
-                        : CalendarScreen(person: _selectedPerson!, onDataChanged: _refreshData),
-          ),
-        ],
+    final familyAsync = ref.watch(familyProvider);
+
+    return familyAsync.when(
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.orange),
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.orange,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Progressi',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant),
-            label: 'Alimenti',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Calendario',
-          ),
-        ],
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Errore: $e')),
       ),
+      data: (familyState) {
+        final persons = familyState.persons;
+        final selectedPerson = familyState.selectedPerson;
+
+        return Scaffold(
+          body: Column(
+            children: [
+              Container(
+                color: Colors.orange,
+                padding: const EdgeInsets.only(
+                    top: 30, left: 12, right: 4, bottom: 6),
+                child: Row(
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: familyState.family == null
+                          ? null
+                          : (persons.isEmpty
+                              ? _addPerson
+                              : () => _openPersonMenu(
+                                  persons, selectedPerson)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              selectedPerson?.name ?? 'Aggiungi persona',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down,
+                                color: Colors.white, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.settings,
+                          color: Colors.white, size: 20),
+                      onPressed: _openSettings,
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: selectedPerson == null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Nessuna persona ancora.'),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: familyState.family == null
+                                  ? null
+                                  : _addPerson,
+                              icon: const Icon(Icons.person_add),
+                              label: const Text('Aggiungi persona'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _currentIndex == 0
+                        ? DashboardScreen(
+                            key: ValueKey(
+                                'dashboard_${selectedPerson.id}'),
+                            person: Person(
+                              id: selectedPerson.id,
+                              familyId: selectedPerson.familyId,
+                              name: selectedPerson.name,
+                              birthDate: selectedPerson.birthDate,
+                              avatarColor: selectedPerson.avatarColor,
+                            ),
+                          )
+                        : _currentIndex == 1
+                            ? FoodListScreen(
+                                key: ValueKey(
+                                    'foodlist_${selectedPerson.id}_$_dataVersion'),
+                                person: Person(
+                                  id: selectedPerson.id,
+                                  familyId: selectedPerson.familyId,
+                                  name: selectedPerson.name,
+                                  birthDate: selectedPerson.birthDate,
+                                  avatarColor: selectedPerson.avatarColor,
+                                ),
+                              )
+                            : CalendarScreen(
+                                person: Person(
+                                  id: selectedPerson.id,
+                                  familyId: selectedPerson.familyId,
+                                  name: selectedPerson.name,
+                                  birthDate: selectedPerson.birthDate,
+                                  avatarColor: selectedPerson.avatarColor,
+                                ),
+                                onDataChanged: _refreshData,
+                              ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            selectedItemColor: Colors.orange,
+            onTap: (index) => setState(() => _currentIndex = index),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard),
+                label: 'Progressi',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.restaurant),
+                label: 'Alimenti',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_month),
+                label: 'Calendario',
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -311,11 +339,13 @@ class _SettingsSheet extends StatelessWidget {
           const ListTile(
             leading: Icon(Icons.language, color: Colors.grey),
             title: Text('Lingua'),
-            trailing: Text('Italiano', style: TextStyle(color: Colors.grey)),
+            trailing:
+                Text('Italiano', style: TextStyle(color: Colors.grey)),
             enabled: false,
           ),
           const ListTile(
-            leading: Icon(Icons.notifications_outlined, color: Colors.grey),
+            leading:
+                Icon(Icons.notifications_outlined, color: Colors.grey),
             title: Text('Notifiche'),
             trailing: Text('Presto disponibile',
                 style: TextStyle(color: Colors.grey, fontSize: 12)),

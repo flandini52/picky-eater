@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'database/app_database.dart';
 import 'screens/home_screen.dart';
 
@@ -7,7 +8,11 @@ late AppDatabase database;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   database = AppDatabase();
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
