@@ -1,11 +1,15 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../database/app_database.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
-import '../repositories/food_repository.dart';
-import '../repositories/session_repository.dart';
-import '../database/app_database.dart';
-import '../main.dart';
-import 'dashboard_provider.dart'; 
+import '../providers/calendar_provider.dart';
+import '../providers/dashboard_provider.dart';
+import '../widgets/outcome_badge.dart';
+import '../sheets/add_session_sheet.dart';
+import '../sheets/complete_session_sheet.dart';
+
 class CalendarScreen extends ConsumerWidget {
   final Person person;
   final VoidCallback? onDataChanged;
