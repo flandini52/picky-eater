@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'database/app_database.dart';
+import 'providers/database_provider.dart';
 import 'screens/home_screen.dart';
-
-late AppDatabase database;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  database = AppDatabase();
+  final database = AppDatabase();
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+      ],
+      child: const MyApp(),
     ),
   );
 }

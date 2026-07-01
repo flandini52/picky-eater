@@ -1,25 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
-import '../repositories/food_repository.dart';
-import '../repositories/session_repository.dart';
 import '../database/app_database.dart';
-import '../main.dart';
-import 'dashboard_provider.dart'; 
+import '../repositories/badge_repository.dart';
+import 'database_provider.dart';
+import 'dashboard_provider.dart';
+
+final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
+  return BadgeRepository(ref.watch(databaseProvider));
+});
 
 class CalendarState {
   final DateTime focusedDay;
   final DateTime? selectedDay;
   final List<SessionEntity> sessionsForDay;
   final List<FoodEntity> foods;
-  final bool loading;
 
   const CalendarState({
     required this.focusedDay,
     this.selectedDay,
     this.sessionsForDay = const [],
     this.foods = const [],
-    this.loading = false,
   });
 
   CalendarState copyWith({
@@ -27,14 +28,12 @@ class CalendarState {
     DateTime? selectedDay,
     List<SessionEntity>? sessionsForDay,
     List<FoodEntity>? foods,
-    bool? loading,
   }) {
     return CalendarState(
       focusedDay: focusedDay ?? this.focusedDay,
       selectedDay: selectedDay ?? this.selectedDay,
       sessionsForDay: sessionsForDay ?? this.sessionsForDay,
       foods: foods ?? this.foods,
-      loading: loading ?? this.loading,
     );
   }
 }
@@ -42,7 +41,8 @@ class CalendarState {
 class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
   @override
   Future<CalendarState> build(String personId) async {
-    final foods = await ref.read(foodRepositoryProvider).getFoodsByPerson(personId);
+    final foods =
+        await ref.read(foodRepositoryProvider).getFoodsByPerson(personId);
     return CalendarState(
       focusedDay: DateTime.now(),
       foods: foods,
@@ -55,8 +55,8 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
         .read(sessionRepositoryProvider)
         .getSessionsByPersonAndDate(personId, normalized);
 
-    final current = state.valueOrNull ??
-        CalendarState(focusedDay: DateTime.now());
+    final current =
+        state.valueOrNull ?? CalendarState(focusedDay: DateTime.now());
     state = AsyncData(current.copyWith(
       selectedDay: day,
       focusedDay: day,
@@ -112,8 +112,9 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
           notes: notes,
         );
     if (achievedLevel > currentFoodLevel) {
-      await ref.read(foodRepositoryProvider).updateFoodLevel(foodId, achievedLevel);
-      // Aggiorna la lista cibi in state
+      await ref
+          .read(foodRepositoryProvider)
+          .updateFoodLevel(foodId, achievedLevel);
       final current = state.valueOrNull;
       if (current != null) {
         final updatedFoods = current.foods.map((f) {
@@ -123,8 +124,9 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
         state = AsyncData(current.copyWith(foods: updatedFoods));
       }
     }
-    final badges =
-        await database.checkAndUnlockBadges(personId, foodId, achievedLevel);
+    final badges = await ref
+        .read(badgeRepositoryProvider)
+        .checkAndUnlockBadges(personId, foodId, achievedLevel);
     await refreshSessionsForDay(personId);
     return badges;
   }

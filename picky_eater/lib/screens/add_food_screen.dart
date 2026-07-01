@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' hide Column;
 import '../database/app_database.dart';
+import '../models/food_entity.dart';
 
 class AddFoodScreen extends StatefulWidget {
   final String personId;
@@ -23,7 +23,14 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     'pesce',
     'carboidrati',
     'latticini',
+    'dolci',
   ];
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,17 +85,15 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   if (nameController.text.isEmpty) return;
-                  final companion = FoodsCompanion.insert(
-                    id: DateTime.now()
-                        .millisecondsSinceEpoch
-                        .toString(),
+                  // Restituisce FoodEntity invece di FoodsCompanion
+                  final entity = FoodEntity(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
                     personId: widget.personId,
                     name: nameController.text,
                     category: selectedCategory,
-                    currentLevel:
-                        Value(selectedLevel.index),
+                    currentLevel: selectedLevel.index,
                   );
-                  Navigator.pop(context, companion);
+                  Navigator.pop(context, entity);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,

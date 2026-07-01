@@ -2,35 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
 import '../models/food_entity.dart';
+import '../models/session_entity.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/activity_selector.dart';
+import '../widgets/outcome_badge.dart';
 
-class AddSessionSheet extends ConsumerStatefulWidget {
+class CompleteSessionSheet extends ConsumerStatefulWidget {
   final String personId;
-  final DateTime date;
-  final List<FoodEntity> foods;
-  final VoidCallback onSave;
+  final SessionEntity session;
+  final FoodEntity food;
+  final Future<void> Function(List<BadgeType>) onCompleted;
 
-  const AddSessionSheet({
+  const CompleteSessionSheet({
     super.key,
     required this.personId,
-    required this.date,
-    required this.foods,
-    required this.onSave,
+    required this.session,
+    required this.food,
+    required this.onCompleted,
   });
 
   @override
-  ConsumerState<AddSessionSheet> createState() => _AddSessionSheetState();
+  ConsumerState<CompleteSessionSheet> createState() =>
+      _CompleteSessionSheetState();
 }
 
-class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
-  FoodEntity? selectedFood;
-  ExposureLevel selectedTarget = ExposureLevel.tolerates;
+class _CompleteSessionSheetState
+    extends ConsumerState<CompleteSessionSheet> {
+  late ExposureLevel selectedLevel;
   String? selectedActivity;
+  final TextEditingController notesController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    selectedLevel = ExposureLevel.values[widget.session.targetLevel];
+  }
+
+  @override
+  void dispose() {
+    notesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final activities = levelActivities[selectedTarget] ?? [];
+    final targetLevel = ExposureLevel.values[widget.session.targetLevel];
+    final activitiesForLevel = levelActivities[selectedLevel] ?? [];
 
     return Padding(
       padding: EdgeInsets.only(
@@ -44,72 +61,130 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Nuova sessione',
-                style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<FoodEntity>(
-              hint: const Text('Scegli alimento'),
-              value: selectedFood,
-              items: widget.foods
-                  .map((f) =>
-                      DropdownMenuItem(value: f, child: Text(f.name)))
-                  .toList(),
-              onChanged: (value) => setState(() => selectedFood = value),
-              decoration:
-                  const InputDecoration(border: OutlineInputBorder()),
+            Row(
+              children: [
+                const Icon(Icons.check_circle_outline, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'Registra sessione',
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<ExposureLevel>(
-              value: selectedTarget,
-              items: ExposureLevel.values
-                  .map((l) =>
-                      DropdownMenuItem(value: l, child: Text(l.label)))
-                  .toList(),
-              onChanged: (value) => setState(() {
-                selectedTarget = value!;
-                selectedActivity = null;
-              }),
-              decoration: const InputDecoration(
-                labelText: 'Livello obiettivo',
-                border: OutlineInputBorder(),
-              ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.food.name} · Obiettivo: ${targetLevel.label}',
+              style:
+                  const TextStyle(fontSize: 14, color: Colors.black54),
             ),
+            const SizedBox(height: 8),
+            OutcomeBadge(
+              targetLevel: widget.session.targetLevel,
+              achievedLevel: selectedLevel.index,
+            ),
+            const SizedBox(height: 20),
+            const Text('Qual è il livello più alto raggiunto oggi?',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            ...ExposureLevel.values.map((level) {
+              final isSelected = selectedLevel == level;
+              return GestureDetector(
+                onTap: () => setState(() {
+                  selectedLevel = level;
+                  selectedActivity = null;
+                }),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.orange.shade100
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.orange
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color:
+                            isSelected ? Colors.orange : Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(level.label,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500)),
+                            Text(level.description,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
             const SizedBox(height: 16),
-            const Text('Attività suggerita',
+            const Text('Quale attività ha completato?',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             ActivitySelector(
-              activities: activities,
+              activities: activitiesForLevel,
               selected: selectedActivity,
               onSelected: (a) => setState(() => selectedActivity = a),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Note (opzionale)',
+                border: OutlineInputBorder(),
+                hintText: 'Come si è comportato? Reazioni particolari?',
+              ),
+              maxLines: 3,
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: selectedFood == null
-                    ? null
-                    : () async {
-                        await ref
-                            .read(calendarProvider(widget.personId)
-                                .notifier)
-                            .addSession(
-                              personId: widget.personId,
-                              foodId: selectedFood!.id,
-                              date: widget.date,
-                              targetLevel: selectedTarget.index,
-                              activity: selectedActivity,
-                            );
-                        widget.onSave();
-                        if (context.mounted) Navigator.pop(context);
-                      },
+                onPressed: () async {
+                  final badges = await ref
+                      .read(calendarProvider(widget.personId).notifier)
+                      .completeSession(
+                        personId: widget.personId,
+                        sessionId: widget.session.id,
+                        foodId: widget.food.id,
+                        currentFoodLevel: widget.food.currentLevel,
+                        achievedLevel: selectedLevel.index,
+                        achievedActivity: selectedActivity,
+                        notes: notesController.text.isEmpty
+                            ? null
+                            : notesController.text,
+                      );
+                  await widget.onCompleted(badges);
+                  if (context.mounted) Navigator.pop(context);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Pianifica sessione'),
+                child: const Text('Salva sessione'),
               ),
             ),
           ],

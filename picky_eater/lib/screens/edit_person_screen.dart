@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
-import '../main.dart';
+import '../providers/person_provider.dart';
 
-class EditPersonScreen extends StatefulWidget {
+class EditPersonScreen extends ConsumerStatefulWidget {
   final Person person;
 
   const EditPersonScreen({super.key, required this.person});
 
   @override
-  State<EditPersonScreen> createState() => _EditPersonScreenState();
+  ConsumerState<EditPersonScreen> createState() =>
+      _EditPersonScreenState();
 }
 
-class _EditPersonScreenState extends State<EditPersonScreen> {
+class _EditPersonScreenState extends ConsumerState<EditPersonScreen> {
   late TextEditingController nameController;
 
   @override
@@ -20,9 +22,17 @@ class _EditPersonScreenState extends State<EditPersonScreen> {
     nameController = TextEditingController(text: widget.person.name);
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
   Future<void> _save() async {
     if (nameController.text.isEmpty) return;
-    await database.updatePersonName(widget.person.id, nameController.text);
+    await ref
+        .read(personRepositoryProvider)
+        .updatePersonName(widget.person.id, nameController.text);
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -50,7 +60,9 @@ class _EditPersonScreenState extends State<EditPersonScreen> {
     );
 
     if (confirmed == true) {
-      await database.deletePerson(widget.person.id);
+      await ref
+          .read(personRepositoryProvider)
+          .deletePerson(widget.person.id);
       if (mounted) Navigator.pop(context, true);
     }
   }
@@ -96,7 +108,8 @@ class _EditPersonScreenState extends State<EditPersonScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _confirmDelete,
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon:
+                    const Icon(Icons.delete_outline, color: Colors.red),
                 label: const Text(
                   'Elimina persona',
                   style: TextStyle(color: Colors.red),

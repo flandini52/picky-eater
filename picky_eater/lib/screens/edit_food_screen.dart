@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
-import '../main.dart';
+import '../providers/dashboard_provider.dart';
 
-class EditFoodScreen extends StatefulWidget {
+class EditFoodScreen extends ConsumerStatefulWidget {
   final Food food;
 
   const EditFoodScreen({super.key, required this.food});
 
   @override
-  State<EditFoodScreen> createState() => _EditFoodScreenState();
+  ConsumerState<EditFoodScreen> createState() => _EditFoodScreenState();
 }
 
-class _EditFoodScreenState extends State<EditFoodScreen> {
+class _EditFoodScreenState extends ConsumerState<EditFoodScreen> {
   late TextEditingController nameController;
   late String selectedCategory;
 
@@ -32,13 +33,19 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
     selectedCategory = widget.food.category;
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
   Future<void> _save() async {
     if (nameController.text.isEmpty) return;
-    await database.updateFood(
-      widget.food.id,
-      nameController.text,
-      selectedCategory,
-    );
+    await ref.read(foodRepositoryProvider).updateFood(
+          foodId: widget.food.id,
+          name: nameController.text,
+          category: selectedCategory,
+        );
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -66,7 +73,7 @@ class _EditFoodScreenState extends State<EditFoodScreen> {
     );
 
     if (confirmed == true) {
-      await database.deleteFood(widget.food.id);
+      await ref.read(foodRepositoryProvider).deleteFood(widget.food.id);
       if (mounted) Navigator.pop(context, true);
     }
   }

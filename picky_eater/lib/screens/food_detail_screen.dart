@@ -1,172 +1,142 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../database/app_database.dart';
-import '../main.dart';
+import '../models/session_entity.dart';
+import '../providers/dashboard_provider.dart';
 
-class FoodDetailScreen extends StatefulWidget {
+class FoodDetailScreen extends ConsumerWidget {
   final Food food;
 
   const FoodDetailScreen({super.key, required this.food});
 
   @override
-  State<FoodDetailScreen> createState() => _FoodDetailScreenState();
-}
-
-class _FoodDetailScreenState extends State<FoodDetailScreen> {
-  List<Session> _sessions = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSessions();
-  }
-
-  Future<void> _loadSessions() async {
-    setState(() => _loading = true);
-    final sessions = await database.getCompletedSessionsForFood(widget.food.id);
-    if (!mounted) return;
-    setState(() {
-      _sessions = sessions;
-      _loading = false;
-    });
-  }
-
-  Color _levelColor(int level) {
-    switch (level) {
-      case 0:
-        return Colors.red.shade300;
-      case 1:
-        return Colors.orange.shade300;
-      case 2:
-        return Colors.yellow.shade600;
-      case 3:
-        return Colors.lightGreen;
-      case 4:
-        return Colors.blue.shade300;
-      case 5:
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final level = ExposureLevel.values[widget.food.currentLevel];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionRepo = ref.watch(sessionRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.food.name),
+        title: Text(food.name),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-          : RefreshIndicator(
-              onRefresh: _loadSessions,
-              color: Colors.orange,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // Header riassuntivo
-                  Row(
-                    children: [
-                      Text(widget.food.category.emoji,
-                          style: const TextStyle(fontSize: 40)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              level.label,
+      body: FutureBuilder<List<SessionEntity>>(
+        future: sessionRepo.getCompletedSessionsForFood(food.id),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
+                child: CircularProgressIndicator(color: Colors.orange));
+          }
+          final sessions = snapshot.data!;
+          final level = ExposureLevel.values[food.currentLevel];
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              (context as Element).markNeedsBuild();
+            },
+            color: Colors.orange,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Row(
+                  children: [
+                    Text(food.category.emoji,
+                        style: const TextStyle(fontSize: 40)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(level.label,
                               style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              level.description,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold)),
+                          Text(level.description,
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.grey.shade600),
-                            ),
-                          ],
-                        ),
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600)),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  if (_sessions.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: Text(
-                          'Nessuna sessione registrata ancora.\nPianificane una dal calendario!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ),
-                    )
-                  else ...[
-                    // Statistiche rapide
-                    _buildStatsRow(),
-                    const SizedBox(height: 24),
-
-                    // Grafico andamento
-                    const Text(
-                      'Andamento nel tempo',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 220,
-                      child: _buildChart(),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Storico sessioni
-                    const Text(
-                      'Storico sessioni',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    ..._sessions.reversed.map((session) => _buildHistoryItem(session)),
                   ],
+                ),
+                const SizedBox(height: 24),
+                if (sessions.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Text(
+                        'Nessuna sessione registrata ancora.\nPianificane una dal calendario!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ),
+                  )
+                else ...[
+                  _StatsRow(sessions: sessions),
+                  const SizedBox(height: 24),
+                  const Text('Andamento nel tempo',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 220,
+                    child: _ProgressChart(sessions: sessions),
+                  ),
+                  const SizedBox(height: 28),
+                  const Text('Storico sessioni',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  ...sessions.reversed
+                      .map((s) => _HistoryItem(session: s)),
                 ],
-              ),
+              ],
             ),
+          );
+        },
+      ),
     );
   }
+}
 
-  Widget _buildStatsRow() {
-    final firstDate = _sessions.first.date;
-    final lastDate = _sessions.last.date;
+class _StatsRow extends StatelessWidget {
+  final List<SessionEntity> sessions;
+
+  const _StatsRow({required this.sessions});
+
+  @override
+  Widget build(BuildContext context) {
+    final firstDate = sessions.first.date;
+    final lastDate = sessions.last.date;
     final daysSinceLast = DateTime.now().difference(lastDate).inDays;
 
     return Row(
       children: [
-        Expanded(
-          child: _statCard('${_sessions.length}', 'Sessioni totali'),
-        ),
+        Expanded(child: _StatCard('${sessions.length}', 'Sessioni totali')),
         const SizedBox(width: 8),
         Expanded(
-          child: _statCard(
-              '${firstDate.day}/${firstDate.month}', 'Prima sessione'),
-        ),
+            child: _StatCard(
+                '${firstDate.day}/${firstDate.month}', 'Prima sessione')),
         const SizedBox(width: 8),
         Expanded(
-          child: _statCard(
-            daysSinceLast == 0 ? 'Oggi' : '$daysSinceLast gg fa',
-            'Ultima sessione',
-          ),
-        ),
+            child: _StatCard(
+          daysSinceLast == 0 ? 'Oggi' : '$daysSinceLast gg fa',
+          'Ultima sessione',
+        )),
       ],
     );
   }
+}
 
-  Widget _statCard(String value, String label) {
+class _StatCard extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _StatCard(this.value, this.label);
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
@@ -181,27 +151,30 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                   fontWeight: FontWeight.bold,
                   color: Colors.orange)),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-            textAlign: TextAlign.center,
-          ),
+          Text(label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+              textAlign: TextAlign.center),
         ],
       ),
     );
   }
+}
 
-  Widget _buildChart() {
-    // Costruiamo i punti: x = giorni dalla prima sessione, y = indice granulare 0-17
-    final firstDate = _sessions.first.date;
+class _ProgressChart extends StatelessWidget {
+  final List<SessionEntity> sessions;
+
+  const _ProgressChart({required this.sessions});
+
+  @override
+  Widget build(BuildContext context) {
+    final firstDate = sessions.first.date;
     final spots = <FlSpot>[];
 
-    for (final session in _sessions) {
+    for (final session in sessions) {
       final daysSinceStart =
           session.date.difference(firstDate).inDays.toDouble();
       int granular = granularIndexForActivity(session.achievedActivity);
       if (granular == -1) {
-        // Fallback: usa il centro del livello macro se non c'è attività specifica
         granular = session.achievedLevel! * 3 + 1;
       }
       spots.add(FlSpot(daysSinceStart, granular.toDouble()));
@@ -214,17 +187,15 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
         gridData: FlGridData(
           show: true,
           horizontalInterval: 3,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.grey.shade200,
-            strokeWidth: 1,
-          ),
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: Colors.grey.shade200, strokeWidth: 1),
           drawVerticalLine: false,
         ),
         titlesData: FlTitlesData(
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -240,9 +211,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Text(
-                    ExposureLevel.values[levelIndex].label,
-                    style: const TextStyle(fontSize: 9),
-                  ),
+                      ExposureLevel.values[levelIndex].label,
+                      style: const TextStyle(fontSize: 9)),
                 );
               },
             ),
@@ -252,13 +222,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               showTitles: true,
               reservedSize: 24,
               getTitlesWidget: (value, meta) {
-                final date = firstDate.add(Duration(days: value.toInt()));
+                final date =
+                    firstDate.add(Duration(days: value.toInt()));
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    '${date.day}/${date.month}',
-                    style: const TextStyle(fontSize: 9),
-                  ),
+                  child: Text('${date.day}/${date.month}',
+                      style: const TextStyle(fontSize: 9)),
                 );
               },
             ),
@@ -283,15 +252,34 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.orange.withOpacity(0.1),
+              color: Colors.orange.withValues(alpha: 0.1),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildHistoryItem(Session session) {
+class _HistoryItem extends StatelessWidget {
+  final SessionEntity session;
+
+  const _HistoryItem({required this.session});
+
+  Color _levelColor(int level) {
+    switch (level) {
+      case 0: return Colors.red.shade300;
+      case 1: return Colors.orange.shade300;
+      case 2: return Colors.yellow.shade600;
+      case 3: return Colors.lightGreen;
+      case 4: return Colors.blue.shade300;
+      case 5: return Colors.green;
+      default: return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final achievedLevel = ExposureLevel.values[session.achievedLevel!];
     final targetLevel = ExposureLevel.values[session.targetLevel];
     final color = _levelColor(session.achievedLevel!);
@@ -312,7 +300,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                decoration:
+                    BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Text(
@@ -321,35 +310,29 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                     fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
-              Text(
-                achievedLevel.label,
-                style: const TextStyle(fontSize: 11),
-              ),
+              Text(achievedLevel.label,
+                  style: const TextStyle(fontSize: 11)),
             ],
           ),
           if (session.achievedActivity != null) ...[
             const SizedBox(height: 6),
-            Text(
-              session.achievedActivity!,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
+            Text(session.achievedActivity!,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w500)),
           ],
           if (session.achievedLevel != session.targetLevel) ...[
             const SizedBox(height: 4),
-            Text(
-              'Obiettivo era: ${targetLevel.label}',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-            ),
+            Text('Obiettivo era: ${targetLevel.label}',
+                style: TextStyle(
+                    fontSize: 10, color: Colors.grey.shade500)),
           ],
           if (session.notes != null && session.notes!.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(
-              session.notes!,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey.shade700),
-            ),
+            Text(session.notes!,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey.shade700)),
           ],
         ],
       ),

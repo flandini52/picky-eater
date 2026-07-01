@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
-import '../main.dart';
+import '../models/food_entity.dart';
+import '../models/session_entity.dart';
+import '../providers/dashboard_provider.dart';
 import 'add_food_screen.dart';
 import 'edit_food_screen.dart';
 import 'food_detail_screen.dart';
 
-class FoodListScreen extends StatefulWidget {
+class FoodListScreen extends ConsumerStatefulWidget {
   final Person person;
 
   const FoodListScreen({super.key, required this.person});
 
   @override
-  State<FoodListScreen> createState() => _FoodListScreenState();
+  ConsumerState<FoodListScreen> createState() => _FoodListScreenState();
 }
 
-class _FoodListScreenState extends State<FoodListScreen> {
-  List<Food> _foods = [];
-  Map<String, Session?> _lastSessionByFood = {};
+class _FoodListScreenState extends ConsumerState<FoodListScreen> {
+  List<FoodEntity> _foods = [];
+  Map<String, SessionEntity?> _lastSessionByFood = {};
   bool _loading = true;
 
   @override
@@ -35,14 +38,19 @@ class _FoodListScreenState extends State<FoodListScreen> {
 
   Future<void> _loadFoods() async {
     setState(() => _loading = true);
-    final foods = await database.getFoodsByPerson(widget.person.id);
-    // Ordine alfabetico
-    foods.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final foodRepo = ref.read(foodRepositoryProvider);
+    final sessionRepo = ref.read(sessionRepositoryProvider);
 
-    final Map<String, Session?> lastSessions = {};
+    final foods = await foodRepo.getFoodsByPerson(widget.person.id);
+    foods.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    final Map<String, SessionEntity?> lastSessions = {};
     for (final food in foods) {
-      final completed = await database.getCompletedSessionsForFood(food.id);
-      lastSessions[food.id] = completed.isNotEmpty ? completed.last : null;
+      final completed =
+          await sessionRepo.getCompletedSessionsForFood(food.id);
+      lastSessions[food.id] =
+          completed.isNotEmpty ? completed.last : null;
     }
 
     if (!mounted) return;
@@ -53,7 +61,7 @@ class _FoodListScreenState extends State<FoodListScreen> {
     });
   }
 
-  void _showLevelPicker(Food food) {
+  void _showLevelPicker(FoodEntity food) {
     showModalBottomSheet(
       context: context,
       builder: (_) {
@@ -62,13 +70,9 @@ class _FoodListScreenState extends State<FoodListScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(
-                food.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: Text(food.name,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             ...ExposureLevel.values.map((level) {
               final isSelected = food.currentLevel == level.index;
@@ -78,7 +82,9 @@ class _FoodListScreenState extends State<FoodListScreen> {
                     ? const Icon(Icons.check, color: Colors.orange)
                     : null,
                 onTap: () async {
-                  await database.updateFoodLevel(food.id, level.index);
+                  await ref
+                      .read(foodRepositoryProvider)
+                      .updateFoodLevel(food.id, level.index);
                   await _loadFoods();
                   if (context.mounted) Navigator.pop(context);
                 },
@@ -93,20 +99,13 @@ class _FoodListScreenState extends State<FoodListScreen> {
 
   Color _levelColor(int level) {
     switch (level) {
-      case 0:
-        return Colors.red.shade300;
-      case 1:
-        return Colors.orange.shade300;
-      case 2:
-        return Colors.yellow.shade600;
-      case 3:
-        return Colors.lightGreen;
-      case 4:
-        return Colors.blue.shade300;
-      case 5:
-        return Colors.green;
-      default:
-        return Colors.grey;
+      case 0: return Colors.red.shade300;
+      case 1: return Colors.orange.shade300;
+      case 2: return Colors.yellow.shade600;
+      case 3: return Colors.lightGreen;
+      case 4: return Colors.blue.shade300;
+      case 5: return Colors.green;
+      default: return Colors.grey;
     }
   }
 
@@ -119,10 +118,12 @@ class _FoodListScreenState extends State<FoodListScreen> {
         foregroundColor: Colors.white,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.orange))
           : _foods.isEmpty
               ? const Center(
-                  child: Text('Nessun alimento ancora. Aggiungine uno!'))
+                  child:
+                      Text('Nessun alimento ancora. Aggiungine uno!'))
               : RefreshIndicator(
                   onRefresh: _loadFoods,
                   color: Colors.orange,
@@ -131,7 +132,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
                     itemCount: _foods.length,
                     itemBuilder: (context, index) {
                       final food = _foods[index];
-                      final level = ExposureLevel.values[food.currentLevel];
+                      final level =
+                          ExposureLevel.values[food.currentLevel];
                       final color = _levelColor(food.currentLevel);
                       final lastSession = _lastSessionByFood[food.id];
 
@@ -148,7 +150,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => FoodDetailScreen(food: food),
+                                builder: (_) =>
+                                    FoodDetailScreen(food: food),
                               ),
                             );
                             await _loadFoods();
@@ -159,20 +162,19 @@ class _FoodListScreenState extends State<FoodListScreen> {
                             child: Row(
                               children: [
                                 Text(food.category.emoji,
-                                    style: const TextStyle(fontSize: 26)),
+                                    style:
+                                        const TextStyle(fontSize: 26)),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        food.name,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                      Text(food.name,
+                                          style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight:
+                                                  FontWeight.bold)),
                                       const SizedBox(height: 2),
                                       Row(
                                         children: [
@@ -189,23 +191,25 @@ class _FoodListScreenState extends State<FoodListScreen> {
                                             child: Text(
                                               level.label,
                                               style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade700,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
+                                                  fontSize: 12,
+                                                  color: Colors
+                                                      .grey.shade700),
+                                              overflow:
+                                                  TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      if (lastSession?.achievedActivity !=
+                                      if (lastSession
+                                              ?.achievedActivity !=
                                           null) ...[
                                         const SizedBox(height: 2),
                                         Text(
                                           lastSession!.achievedActivity!,
                                           style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey.shade500,
-                                          ),
+                                              fontSize: 11,
+                                              color:
+                                                  Colors.grey.shade500),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -219,12 +223,20 @@ class _FoodListScreenState extends State<FoodListScreen> {
                                       color: Colors.grey, size: 20),
                                   onSelected: (value) async {
                                     if (value == 'edit') {
+                                      // Converti FoodEntity in Food per EditFoodScreen
+                                      final driftFood = Food(
+                                        id: food.id,
+                                        personId: food.personId,
+                                        name: food.name,
+                                        category: food.category,
+                                        currentLevel: food.currentLevel,
+                                      );
                                       final result =
                                           await Navigator.push<bool>(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) =>
-                                              EditFoodScreen(food: food),
+                                          builder: (_) => EditFoodScreen(
+                                              food: driftFood),
                                         ),
                                       );
                                       if (result == true) await _loadFoods();
@@ -235,23 +247,19 @@ class _FoodListScreenState extends State<FoodListScreen> {
                                   itemBuilder: (context) => [
                                     const PopupMenuItem(
                                       value: 'level',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.tune, size: 18),
-                                          SizedBox(width: 8),
-                                          Text('Imposta livello'),
-                                        ],
-                                      ),
+                                      child: Row(children: [
+                                        Icon(Icons.tune, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Imposta livello'),
+                                      ]),
                                     ),
                                     const PopupMenuItem(
                                       value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit, size: 18),
-                                          SizedBox(width: 8),
-                                          Text('Modifica'),
-                                        ],
-                                      ),
+                                      child: Row(children: [
+                                        Icon(Icons.edit, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Modifica'),
+                                      ]),
                                     ),
                                   ],
                                 ),
@@ -265,14 +273,21 @@ class _FoodListScreenState extends State<FoodListScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final result = await Navigator.push<FoodsCompanion>(
+          final result = await Navigator.push<FoodEntity>(
             context,
             MaterialPageRoute(
-              builder: (_) => AddFoodScreen(personId: widget.person.id),
+              builder: (_) =>
+                  AddFoodScreen(personId: widget.person.id),
             ),
           );
           if (result != null) {
-            await database.insertFood(result);
+            await ref.read(foodRepositoryProvider).insertFood(
+                  id: result.id,
+                  personId: result.personId,
+                  name: result.name,
+                  category: result.category,
+                  currentLevel: result.currentLevel,
+                );
             await _loadFoods();
           }
         },

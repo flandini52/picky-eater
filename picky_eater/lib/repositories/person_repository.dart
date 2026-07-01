@@ -1,13 +1,11 @@
 import '../database/app_database.dart';
 import '../models/person_entity.dart';
-import 'package:drift/drift.dart';
 
 class PersonRepository {
   final AppDatabase _db;
 
   PersonRepository(this._db);
 
-  // Mapper Drift → dominio
   PersonEntity _toEntity(Person person) => PersonEntity(
         id: person.id,
         familyId: person.familyId,

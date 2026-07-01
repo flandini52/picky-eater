@@ -3,20 +3,19 @@ import '../models/person_entity.dart';
 import '../models/family_entity.dart';
 import '../repositories/person_repository.dart';
 import '../repositories/family_repository.dart';
-import '../database/app_database.dart';
-import '../main.dart';
+import 'database_provider.dart';
 
 // --- Repository providers ---
 
 final personRepositoryProvider = Provider<PersonRepository>((ref) {
-  return PersonRepository(database);
+  return PersonRepository(ref.watch(databaseProvider));
 });
 
 final familyRepositoryProvider = Provider<FamilyRepository>((ref) {
-  return FamilyRepository(database);
+  return FamilyRepository(ref.watch(databaseProvider));
 });
 
-// --- State: famiglia + lista persone ---
+// --- State ---
 
 class FamilyState {
   final FamilyEntity? family;
@@ -45,8 +44,6 @@ class FamilyState {
   }
 }
 
-// --- Notifier ---
-
 class FamilyNotifier extends AsyncNotifier<FamilyState> {
   @override
   Future<FamilyState> build() async {
@@ -68,7 +65,6 @@ class FamilyNotifier extends AsyncNotifier<FamilyState> {
     final family = families.first;
     final persons = await personRepo.getPersonsByFamily(family.id);
 
-    // Mantieni la persona selezionata se ancora presente
     final currentSelected = state.valueOrNull?.selectedPerson;
     final selectedPerson = persons.isNotEmpty
         ? (currentSelected != null &&
@@ -99,7 +95,6 @@ class FamilyNotifier extends AsyncNotifier<FamilyState> {
       name: name,
     );
     await refresh();
-    // Seleziona l'ultima persona aggiunta
     final persons = state.valueOrNull?.persons ?? [];
     if (persons.isNotEmpty) {
       selectPerson(persons.last);

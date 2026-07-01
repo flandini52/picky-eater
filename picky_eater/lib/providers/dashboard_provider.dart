@@ -1,21 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/food_repository.dart';
 import '../repositories/session_repository.dart';
+import '../repositories/weekly_goal_repository.dart';
 import '../models/food_entity.dart';
-import '../database/app_database.dart';
-import '../main.dart';
+import 'database_provider.dart';
 
 // --- Repository providers ---
 
 final foodRepositoryProvider = Provider<FoodRepository>((ref) {
-  return FoodRepository(database);
+  return FoodRepository(ref.watch(databaseProvider));
 });
 
 final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
-  return SessionRepository(database);
+  return SessionRepository(ref.watch(databaseProvider));
 });
 
-// --- Domain model per la dashboard ---
+final weeklyGoalRepositoryProvider = Provider<WeeklyGoalRepository>((ref) {
+  return WeeklyGoalRepository(ref.watch(databaseProvider));
+});
+
+// --- Domain models ---
 
 class FoodProgress {
   final FoodEntity food;
@@ -36,10 +40,7 @@ class DashboardData {
   });
 }
 
-// --- AsyncNotifierProvider.family: riceve personId come parametro ---
-
-class DashboardNotifier
-    extends FamilyAsyncNotifier<DashboardData, String> {
+class DashboardNotifier extends FamilyAsyncNotifier<DashboardData, String> {
   @override
   Future<DashboardData> build(String personId) async {
     return _load(personId);
@@ -48,10 +49,10 @@ class DashboardNotifier
   Future<DashboardData> _load(String personId) async {
     final foodRepo = ref.read(foodRepositoryProvider);
     final sessionRepo = ref.read(sessionRepositoryProvider);
+    final weeklyGoalRepo = ref.read(weeklyGoalRepositoryProvider);
 
-    final weeklyGoal = await database.getWeeklyGoal(personId);
-    final sessionsThisWeek =
-        await sessionRepo.getSessionsThisWeek(personId);
+    final weeklyGoal = await weeklyGoalRepo.getWeeklyGoal(personId);
+    final sessionsThisWeek = await sessionRepo.getSessionsThisWeek(personId);
     final foods = await foodRepo.getFoodsByPerson(personId);
 
     final progress = await Future.wait(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
-import '../models/food_entity.dart';
 import '../providers/dashboard_provider.dart';
 import 'achivements_screen.dart';
 
@@ -127,7 +126,7 @@ class _WeeklyGoalCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: (sessionsThisWeek / weeklyGoal).clamp(0, 1),
-              backgroundColor: Colors.white.withOpacity(0.3),
+              backgroundColor: Colors.white.withValues(alpha: 0.3),
               valueColor:
                   const AlwaysStoppedAnimation<Color>(Colors.white),
               minHeight: 10,
