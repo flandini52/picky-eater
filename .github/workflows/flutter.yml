@@ -3,6 +3,8 @@ name: Flutter CI
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -10,10 +12,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2.14.0
+
         with:
           flutter-version: '3.44.2'
           channel: 'stable'
@@ -30,6 +33,3 @@ jobs:
 
       - name: Test
         run: flutter test
-
-      - name: Build APK debug
-        run: flutter build apk --debug
