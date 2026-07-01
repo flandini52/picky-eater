@@ -52,14 +52,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isEmpty) return;
-              try {
+                try {
                 await ref
                     .read(familyProvider.notifier)
                     .addPerson(nameController.text);
-                if (context.mounted) Navigator.pop(context);
+                if (mounted) Navigator.pop(context);
               } catch (e) {
-                debugPrint('Errore addPerson: $e');
-                if (context.mounted) {
+                if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Errore: $e')),
                   );

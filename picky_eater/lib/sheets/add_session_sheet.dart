@@ -50,7 +50,7 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
             const SizedBox(height: 16),
             DropdownButtonFormField<FoodEntity>(
               hint: const Text('Scegli alimento'),
-              value: selectedFood,
+              initialValue: selectedFood,
               items: widget.foods
                   .map((f) =>
                       DropdownMenuItem(value: f, child: Text(f.name)))
@@ -61,7 +61,7 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExposureLevel>(
-              value: selectedTarget,
+              initialValue: selectedTarget,
               items: ExposureLevel.values
                   .map((l) =>
                       DropdownMenuItem(value: l, child: Text(l.label)))

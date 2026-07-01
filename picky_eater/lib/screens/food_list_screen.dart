@@ -86,7 +86,7 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
                       .read(foodRepositoryProvider)
                       .updateFoodLevel(food.id, level.index);
                   await _loadFoods();
-                  if (context.mounted) Navigator.pop(context);
+                    if (mounted) Navigator.pop(context);
                 },
               );
             }),
@@ -150,9 +150,15 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    FoodDetailScreen(food: food),
-                              ),
+                                builder: (_) => FoodDetailScreen(
+                                  food: Food(
+                                    id: food.id,
+                                    personId: food.personId,
+                                    name: food.name,
+                                    category: food.category,
+                                    currentLevel: food.currentLevel,
+                                  ),
+                                ),                              ),
                             );
                             await _loadFoods();
                           },

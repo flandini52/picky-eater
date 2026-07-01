@@ -56,7 +56,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
             const Text('Categoria'),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               items: categories
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
@@ -67,7 +67,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExposureLevel>(
-              value: selectedLevel,
+              initialValue: selectedLevel,
               items: ExposureLevel.values
                   .map((l) =>
                       DropdownMenuItem(value: l, child: Text(l.label)))
