@@ -68,9 +68,9 @@ class FamilyNotifier extends AsyncNotifier<FamilyState> {
     final currentSelected = state.valueOrNull?.selectedPerson;
     final selectedPerson = persons.isNotEmpty
         ? (currentSelected != null &&
-                persons.any((p) => p.id == currentSelected.id)
-            ? persons.firstWhere((p) => p.id == currentSelected.id)
-            : persons.first)
+                  persons.any((p) => p.id == currentSelected.id)
+              ? persons.firstWhere((p) => p.id == currentSelected.id)
+              : persons.first)
         : null;
 
     return FamilyState(
@@ -108,5 +108,6 @@ class FamilyNotifier extends AsyncNotifier<FamilyState> {
   }
 }
 
-final familyProvider =
-    AsyncNotifierProvider<FamilyNotifier, FamilyState>(FamilyNotifier.new);
+final familyProvider = AsyncNotifierProvider<FamilyNotifier, FamilyState>(
+  FamilyNotifier.new,
+);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../core/badge_type.dart';
+import '../core/exposure_level.dart';
 import '../database/app_database.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
@@ -14,11 +16,7 @@ class CalendarScreen extends ConsumerWidget {
   final Person person;
   final VoidCallback? onDataChanged;
 
-  const CalendarScreen({
-    super.key,
-    required this.person,
-    this.onDataChanged,
-  });
+  const CalendarScreen({super.key, required this.person, this.onDataChanged});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +30,8 @@ class CalendarScreen extends ConsumerWidget {
       ),
       body: calendarAsync.when(
         loading: () => const Center(
-            child: CircularProgressIndicator(color: Colors.orange)),
+          child: CircularProgressIndicator(color: Colors.orange),
+        ),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (calState) => Column(
           children: [
@@ -63,13 +62,17 @@ class CalendarScreen extends ConsumerWidget {
               _DayHeader(
                 day: calState.selectedDay!,
                 onAdd: () => _showAddSession(
-                    context, ref, calState.selectedDay!, calState.foods),
+                  context,
+                  ref,
+                  calState.selectedDay!,
+                  calState.foods,
+                ),
               ),
               Expanded(
                 child: calState.sessionsForDay.isEmpty
                     ? const Center(
-                        child:
-                            Text('Nessuna sessione per questo giorno'))
+                        child: Text('Nessuna sessione per questo giorno'),
+                      )
                     : ListView.builder(
                         itemCount: calState.sessionsForDay.length,
                         itemBuilder: (context, index) {
@@ -82,7 +85,11 @@ class CalendarScreen extends ConsumerWidget {
                             session: session,
                             food: food,
                             onRegister: () => _showCompleteSession(
-                                context, ref, session, food),
+                              context,
+                              ref,
+                              session,
+                              food,
+                            ),
                           );
                         },
                       ),
@@ -90,8 +97,7 @@ class CalendarScreen extends ConsumerWidget {
             ] else
               const Expanded(
                 child: Center(
-                  child: Text(
-                      'Seleziona un giorno per vedere le sessioni'),
+                  child: Text('Seleziona un giorno per vedere le sessioni'),
                 ),
               ),
           ],
@@ -100,8 +106,12 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddSession(BuildContext context, WidgetRef ref,
-      DateTime day, List<FoodEntity> foods) {
+  void _showAddSession(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime day,
+    List<FoodEntity> foods,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -117,8 +127,12 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  void _showCompleteSession(BuildContext context, WidgetRef ref,
-      SessionEntity session, FoodEntity food) {
+  void _showCompleteSession(
+    BuildContext context,
+    WidgetRef ref,
+    SessionEntity session,
+    FoodEntity food,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -143,8 +157,7 @@ class CalendarScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -157,15 +170,13 @@ class CalendarScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               badge.title,
-              style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               badge.description,
-              style:
-                  TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
               textAlign: TextAlign.center,
             ),
           ],
@@ -207,8 +218,10 @@ class _DayHeader extends StatelessWidget {
           TextButton.icon(
             onPressed: onAdd,
             icon: const Icon(Icons.add, color: Colors.orange),
-            label: const Text('Aggiungi',
-                style: TextStyle(color: Colors.orange)),
+            label: const Text(
+              'Aggiungi',
+              style: TextStyle(color: Colors.orange),
+            ),
           ),
         ],
       ),
@@ -245,8 +258,7 @@ class _SessionCard extends StatelessWidget {
             if (session.activity != null)
               Text(
                 '📋 ${session.activity}',
-                style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             if (achieved != null && session.achievedActivity != null)
               Padding(
@@ -262,15 +274,14 @@ class _SessionCard extends StatelessWidget {
               ),
           ],
         ),
-        isThreeLine: session.activity != null ||
-            session.achievedActivity != null,
+        isThreeLine:
+            session.activity != null || session.achievedActivity != null,
         trailing: achieved != null
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(achieved.label,
-                      style: const TextStyle(fontSize: 12)),
+                  Text(achieved.label, style: const TextStyle(fontSize: 12)),
                   const SizedBox(height: 4),
                   OutcomeBadge(
                     targetLevel: session.targetLevel,

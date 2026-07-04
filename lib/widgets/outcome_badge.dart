@@ -40,8 +40,7 @@ class OutcomeBadge extends StatelessWidget {
       ),
       child: Text(
         _text,
-        style: TextStyle(
-            fontSize: 10, color: _fg, fontWeight: FontWeight.w600),
+        style: TextStyle(fontSize: 10, color: _fg, fontWeight: FontWeight.w600),
       ),
     );
   }

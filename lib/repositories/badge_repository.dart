@@ -1,3 +1,4 @@
+import '../core/badge_type.dart';
 import '../database/app_database.dart';
 import '../models/badge_entity.dart';
 
@@ -7,11 +8,11 @@ class BadgeRepository {
   BadgeRepository(this._db);
 
   BadgeEntity _toEntity(Badge badge) => BadgeEntity(
-        id: badge.id,
-        personId: badge.personId,
-        badgeType: badge.badgeType,
-        unlockedAt: badge.unlockedAt,
-      );
+    id: badge.id,
+    personId: badge.personId,
+    badgeType: badge.badgeType,
+    unlockedAt: badge.unlockedAt,
+  );
 
   Future<List<BadgeEntity>> getBadgesForPerson(String personId) async {
     final badges = await _db.getBadgesForPerson(personId);
@@ -28,6 +29,5 @@ class BadgeRepository {
     String personId,
     String foodId,
     int achievedLevel,
-  ) =>
-      _db.checkAndUnlockBadges(personId, foodId, achievedLevel);
+  ) => _db.checkAndUnlockBadges(personId, foodId, achievedLevel);
 }

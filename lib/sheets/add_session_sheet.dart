@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../database/app_database.dart';
+import '../core/exposure_level.dart';
 import '../models/food_entity.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/activity_selector.dart';
@@ -44,27 +44,25 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Nuova sessione',
-                style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Nuova sessione',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             DropdownButtonFormField<FoodEntity>(
               hint: const Text('Scegli alimento'),
               initialValue: selectedFood,
               items: widget.foods
-                  .map((f) =>
-                      DropdownMenuItem(value: f, child: Text(f.name)))
+                  .map((f) => DropdownMenuItem(value: f, child: Text(f.name)))
                   .toList(),
               onChanged: (value) => setState(() => selectedFood = value),
-              decoration:
-                  const InputDecoration(border: OutlineInputBorder()),
+              decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExposureLevel>(
               initialValue: selectedTarget,
               items: ExposureLevel.values
-                  .map((l) =>
-                      DropdownMenuItem(value: l, child: Text(l.label)))
+                  .map((l) => DropdownMenuItem(value: l, child: Text(l.label)))
                   .toList(),
               onChanged: (value) => setState(() {
                 selectedTarget = value!;
@@ -76,8 +74,10 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Attività suggerita',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Attività suggerita',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             ActivitySelector(
               activities: activities,
@@ -92,8 +92,7 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
                     ? null
                     : () async {
                         await ref
-                            .read(calendarProvider(widget.personId)
-                                .notifier)
+                            .read(calendarProvider(widget.personId).notifier)
                             .addSession(
                               personId: widget.personId,
                               foodId: selectedFood!.id,

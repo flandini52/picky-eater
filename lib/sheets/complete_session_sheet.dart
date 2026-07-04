@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../database/app_database.dart';
+import '../core/badge_type.dart';
+import '../core/exposure_level.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
 import '../providers/calendar_provider.dart';
@@ -26,8 +27,7 @@ class CompleteSessionSheet extends ConsumerStatefulWidget {
       _CompleteSessionSheetState();
 }
 
-class _CompleteSessionSheetState
-    extends ConsumerState<CompleteSessionSheet> {
+class _CompleteSessionSheetState extends ConsumerState<CompleteSessionSheet> {
   late ExposureLevel selectedLevel;
   String? selectedActivity;
   final TextEditingController notesController = TextEditingController();
@@ -67,16 +67,14 @@ class _CompleteSessionSheetState
                 const SizedBox(width: 8),
                 const Text(
                   'Registra sessione',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               '${widget.food.name} · Obiettivo: ${targetLevel.label}',
-              style:
-                  const TextStyle(fontSize: 14, color: Colors.black54),
+              style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 8),
             OutcomeBadge(
@@ -84,8 +82,10 @@ class _CompleteSessionSheetState
               achievedLevel: selectedLevel.index,
             ),
             const SizedBox(height: 20),
-            const Text('Qual è il livello più alto raggiunto oggi?',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Qual è il livello più alto raggiunto oggi?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             ...ExposureLevel.values.map((level) {
               final isSelected = selectedLevel == level;
@@ -97,16 +97,16 @@ class _CompleteSessionSheetState
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Colors.orange.shade100
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected
-                          ? Colors.orange
-                          : Colors.grey.shade300,
+                      color: isSelected ? Colors.orange : Colors.grey.shade300,
                     ),
                   ),
                   child: Row(
@@ -115,8 +115,7 @@ class _CompleteSessionSheetState
                         isSelected
                             ? Icons.check_circle
                             : Icons.radio_button_unchecked,
-                        color:
-                            isSelected ? Colors.orange : Colors.grey,
+                        color: isSelected ? Colors.orange : Colors.grey,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -124,13 +123,19 @@ class _CompleteSessionSheetState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(level.label,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w500)),
-                            Text(level.description,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade600)),
+                            Text(
+                              level.label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              level.description,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -140,8 +145,10 @@ class _CompleteSessionSheetState
               );
             }),
             const SizedBox(height: 16),
-            const Text('Quale attività ha completato?',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Quale attività ha completato?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             ActivitySelector(
               activities: activitiesForLevel,

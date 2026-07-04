@@ -1,192 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import '../core/badge_type.dart';
+import '../core/exposure_level.dart';
 
 part 'app_database.g.dart';
-
-// Spostato qui da alimento.dart
-enum ExposureLevel {
-  tolerates,
-  interacts,
-  smells,
-  touches,
-  tastes,
-  eats,
-}
-
-extension ExposureLevelExtension on ExposureLevel {
-  String get label {
-    switch (this) {
-      case ExposureLevel.tolerates:
-        return '🔴 Tollera';
-      case ExposureLevel.interacts:
-        return '🟠 Interagisce';
-      case ExposureLevel.smells:
-        return '🟡 Annusa';
-      case ExposureLevel.touches:
-        return '🟢 Tocca';
-      case ExposureLevel.tastes:
-        return '🔵 Assaggia';
-      case ExposureLevel.eats:
-        return '⭐ Mangia';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case ExposureLevel.tolerates:
-        return 'È nella stessa stanza con il cibo';
-      case ExposureLevel.interacts:
-        return 'Usa utensili o tocca il cibo con strumenti';
-      case ExposureLevel.smells:
-        return 'Si avvicina e annusa il cibo';
-      case ExposureLevel.touches:
-        return 'Tocca il cibo con dita, mano o viso';
-      case ExposureLevel.tastes:
-        return 'Porta il cibo alle labbra o punta della lingua';
-      case ExposureLevel.eats:
-        return 'Mastica e deglutisce';
-    }
-  }
-}
-
-// Mantenuto per compatibilità con dati storici, non più usato attivamente
-enum SessionOutcome {
-  success,
-  partial,
-  exceeded,
-}
-
-extension SessionOutcomeExtension on SessionOutcome {
-  String get label {
-    switch (this) {
-      case SessionOutcome.success:
-        return 'Obiettivo raggiunto';
-      case SessionOutcome.partial:
-        return 'Ci ha provato';
-      case SessionOutcome.exceeded:
-        return 'È andato oltre l\'obiettivo';
-    }
-  }
-}
-
-const Map<ExposureLevel, List<String>> levelActivities = {
-  ExposureLevel.tolerates: [
-    'Stare nella stessa stanza con il cibo',
-    'Sedersi al tavolo con il cibo presente',
-    'A tavola guardare il cibo da lontano',
-  ],
-  ExposureLevel.interacts: [
-    'Spostare il cibo nel piatto con un cucchiaio',
-    'Aiutare a preparare il cibo',
-    'Usare una forchetta per toccare il cibo',
-  ],
-  ExposureLevel.smells: [
-    'Annusare il cibo a distanza / percepisce odore nella stanza',
-    'Si avvicina e annusa',
-    'Annusare tenendolo in mano',
-  ],
-  ExposureLevel.touches: [
-    'Toccare con le posate',
-    'Toccare con un dito',
-    'Toccare con tutta la mano',
-  ],
-  ExposureLevel.tastes: [
-    'Portare alle labbra',
-    'Toccare con la punta della lingua',
-    'Lecca ma non mette in bocca',
-  ],
-  ExposureLevel.eats: [
-    'Masticare e sputare',
-    'Masticare e deglutire',
-    'Mangiare autonomamente',
-  ],
-};
-
-/// Calcola l'indice granulare (0-17) di un'attività specifica.
-/// Restituisce -1 se non trovata.
-int granularIndexForActivity(String? activity) {
-  if (activity == null) return -1;
-  for (final level in ExposureLevel.values) {
-    final activities = levelActivities[level] ?? [];
-    final pos = activities.indexOf(activity);
-    if (pos != -1) {
-      return level.index * 3 + pos;
-    }
-  }
-  return -1;
-}
-
-/// Etichetta breve per un indice granulare, utile per i grafici
-String granularLabel(int granularIndex) {
-  final levelIndex = granularIndex ~/ 3;
-  if (levelIndex < 0 || levelIndex >= ExposureLevel.values.length) return '';
-  return ExposureLevel.values[levelIndex].label;
-}
-
-
-
-enum BadgeType {
-  firstSession,
-  firstTaste,
-  firstEat,
-  foodCompleted,
-  fiveFoodsTriedDifferent,
-  tenSessionsTotal,
-}
-
-extension BadgeTypeExtension on BadgeType {
-  String get title {
-    switch (this) {
-      case BadgeType.firstSession:
-        return 'Prima sessione';
-      case BadgeType.firstTaste:
-        return 'Primo assaggio';
-      case BadgeType.firstEat:
-        return 'Prima volta che mangia!';
-      case BadgeType.foodCompleted:
-        return 'Percorso completato';
-      case BadgeType.fiveFoodsTriedDifferent:
-        return '5 alimenti provati';
-      case BadgeType.tenSessionsTotal:
-        return '10 sessioni registrate';
-    }
-  }
-
-  String get emoji {
-    switch (this) {
-      case BadgeType.firstSession:
-        return '🎉';
-      case BadgeType.firstTaste:
-        return '👅';
-      case BadgeType.firstEat:
-        return '🍽️';
-      case BadgeType.foodCompleted:
-        return '🌟';
-      case BadgeType.fiveFoodsTriedDifferent:
-        return '🥗';
-      case BadgeType.tenSessionsTotal:
-        return '📅';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case BadgeType.firstSession:
-        return 'Hai registrato la tua prima sessione!';
-      case BadgeType.firstTaste:
-        return 'Un alimento è stato assaggiato per la prima volta!';
-      case BadgeType.firstEat:
-        return 'Un alimento è stato mangiato per la prima volta!';
-      case BadgeType.foodCompleted:
-        return 'Un alimento ha completato tutto il percorso, da Tollera a Mangia!';
-      case BadgeType.fiveFoodsTriedDifferent:
-        return 'Hai provato 5 alimenti diversi!';
-      case BadgeType.tenSessionsTotal:
-        return 'Hai registrato 10 sessioni in totale!';
-    }
-  }
-}
-
 
 extension CategoryExtension on String {
   String get emoji {
@@ -226,7 +43,8 @@ class Persons extends Table {
   TextColumn get familyId => text().references(Families, #id)();
   TextColumn get name => text()();
   DateTimeColumn get birthDate => dateTime().nullable()();
-  IntColumn get avatarColor => integer().withDefault(const Constant(0xFFFF9800))();
+  IntColumn get avatarColor =>
+      integer().withDefault(const Constant(0xFFFF9800))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -251,8 +69,10 @@ class Sessions extends Table {
   IntColumn get targetLevel => integer()();
   TextColumn get activity => text().nullable()();
   IntColumn get achievedLevel => integer().nullable()();
-  TextColumn get achievedActivity => text().nullable()(); // NUOVO: attività SOS specifica raggiunta
-  TextColumn get outcome => text().nullable()(); // legacy, non più scritto attivamente
+  TextColumn get achievedActivity =>
+      text().nullable()(); // NUOVO: attività SOS specifica raggiunta
+  TextColumn get outcome =>
+      text().nullable()(); // legacy, non più scritto attivamente
   TextColumn get notes => text().nullable()();
 
   @override
@@ -270,7 +90,8 @@ class WeeklyGoals extends Table {
 class Badges extends Table {
   TextColumn get id => text()();
   TextColumn get personId => text().references(Persons, #id)();
-  TextColumn get badgeType => text()(); // es. 'first_session', 'first_taste', ecc.
+  TextColumn get badgeType =>
+      text()(); // es. 'first_session', 'first_taste', ecc.
   DateTimeColumn get unlockedAt => dateTime()();
 
   @override
@@ -279,9 +100,16 @@ class Badges extends Table {
 
 // --- Database ---
 
-@DriftDatabase(tables: [Families, Persons, Foods, Sessions, WeeklyGoals, Badges])
+@DriftDatabase(
+  tables: [Families, Persons, Foods, Sessions, WeeklyGoals, Badges],
+)
 class AppDatabase extends _$AppDatabase {
+  /// Costruttore di produzione — usa SQLite reale via driftDatabase
   AppDatabase() : super(_openConnection());
+
+  /// Costruttore per i test — accetta un executor in-memory
+  /// Non usare mai in produzione
+  AppDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => 5;
@@ -292,26 +120,26 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.addColumn(sessions, sessions.activity);
-          }
-          if (from < 3) {
-            await m.createTable(weeklyGoals);
-            await m.createTable(badges);
-          }
-          if (from < 4) {
-            await m.addColumn(sessions, sessions.outcome);
-          }
-          if (from < 5) {
-            await m.addColumn(sessions, sessions.achievedActivity);
-          }
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(sessions, sessions.activity);
+      }
+      if (from < 3) {
+        await m.createTable(weeklyGoals);
+        await m.createTable(badges);
+      }
+      if (from < 4) {
+        await m.addColumn(sessions, sessions.outcome);
+      }
+      if (from < 5) {
+        await m.addColumn(sessions, sessions.achievedActivity);
+      }
+    },
+  );
 
   // --- Families ---
   Future<List<Family>> getAllFamilies() => select(families).get();
-  
+
   Future<void> insertFamily(FamiliesCompanion family) =>
       into(families).insert(family);
 
@@ -322,7 +150,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> insertPerson(PersonsCompanion person) =>
       into(persons).insert(person);
 
- Future<void> updatePersonName(String personId, String name) =>
+  Future<void> updatePersonName(String personId, String name) =>
       (update(persons)..where((p) => p.id.equals(personId))).write(
         PersonsCompanion(name: Value(name)),
       );
@@ -335,24 +163,19 @@ class AppDatabase extends _$AppDatabase {
     }
     await (delete(foods)..where((f) => f.personId.equals(personId))).go();
     await (delete(badges)..where((b) => b.personId.equals(personId))).go();
-    await (delete(weeklyGoals)..where((g) => g.personId.equals(personId)))
-        .go();
+    await (delete(weeklyGoals)..where((g) => g.personId.equals(personId))).go();
     await (delete(persons)..where((p) => p.id.equals(personId))).go();
   }
-  
+
   // --- Foods ---
   Future<List<Food>> getFoodsByPerson(String personId) =>
       (select(foods)..where((f) => f.personId.equals(personId))).get();
 
-  Future<void> insertFood(FoodsCompanion food) =>
-      into(foods).insert(food);
+  Future<void> insertFood(FoodsCompanion food) => into(foods).insert(food);
 
   Future<void> updateFood(String foodId, String name, String category) =>
       (update(foods)..where((f) => f.id.equals(foodId))).write(
-        FoodsCompanion(
-          name: Value(name),
-          category: Value(category),
-        ),
+        FoodsCompanion(name: Value(name), category: Value(category)),
       );
 
   Future<void> deleteFood(String foodId) async {
@@ -362,14 +185,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateFoodLevel(String foodId, int level) =>
-      (update(foods)..where((f) => f.id.equals(foodId)))
-          .write(FoodsCompanion(currentLevel: Value(level)));
-      
+      (update(foods)..where((f) => f.id.equals(foodId))).write(
+        FoodsCompanion(currentLevel: Value(level)),
+      );
+
   Future<String> getFoodName(String foodId) async {
-    final food = await (select(foods)..where((f) => f.id.equals(foodId))).getSingle();
+    final food = await (select(
+      foods,
+    )..where((f) => f.id.equals(foodId))).getSingle();
     return food.name;
   }
-  
 
   // --- Sessions ---
   Future<List<Session>> getSessionsByPerson(String personId) =>
@@ -379,48 +204,55 @@ class AppDatabase extends _$AppDatabase {
       (select(sessions)..where((s) => s.date.equals(date))).get();
 
   Future<List<Session>> getSessionsByPersonAndDate(
-      String personId, DateTime date) {
+    String personId,
+    DateTime date,
+  ) {
     final nextDay = date.add(const Duration(days: 1));
-    return (select(sessions)
-          ..where((s) =>
+    return (select(sessions)..where(
+          (s) =>
               s.personId.equals(personId) &
               s.date.isBiggerOrEqualValue(date) &
-              s.date.isSmallerThanValue(nextDay)))
+              s.date.isSmallerThanValue(nextDay),
+        ))
         .get();
   }
-Future<int> getSessionCountForFood(String foodId) async {
-  final count = await (selectOnly(sessions)
-        ..addColumns([sessions.id.count()])
-        ..where(sessions.foodId.equals(foodId)))
-      .getSingle();
-  return count.read(sessions.id.count()) ?? 0;
-}
+
+  Future<int> getSessionCountForFood(String foodId) async {
+    final count =
+        await (selectOnly(sessions)
+              ..addColumns([sessions.id.count()])
+              ..where(sessions.foodId.equals(foodId)))
+            .getSingle();
+    return count.read(sessions.id.count()) ?? 0;
+  }
 
   Future<void> insertSession(SessionsCompanion session) =>
       into(sessions).insert(session);
 
   Future<void> completeSession(
-      String sessionId, int achievedLevel, String? achievedActivity, String? notes) =>
-      (update(sessions)..where((s) => s.id.equals(sessionId))).write(
-        SessionsCompanion(
-          achievedLevel: Value(achievedLevel),
-          achievedActivity: Value(achievedActivity),
-          notes: Value(notes),
-        ),
-      );
+    String sessionId,
+    int achievedLevel,
+    String? achievedActivity,
+    String? notes,
+  ) => (update(sessions)..where((s) => s.id.equals(sessionId))).write(
+    SessionsCompanion(
+      achievedLevel: Value(achievedLevel),
+      achievedActivity: Value(achievedActivity),
+      notes: Value(notes),
+    ),
+  );
   Future<List<Session>> getCompletedSessionsForFood(String foodId) async {
-  return (select(sessions)
-        ..where((s) =>
-            s.foodId.equals(foodId) & s.achievedLevel.isNotNull())
-        ..orderBy([(s) => OrderingTerm.asc(s.date)]))
-      .get();
-}
+    return (select(sessions)
+          ..where((s) => s.foodId.equals(foodId) & s.achievedLevel.isNotNull())
+          ..orderBy([(s) => OrderingTerm.asc(s.date)]))
+        .get();
+  }
 
   // --- Weekly Goals ---
   Future<int> getWeeklyGoal(String personId) async {
-    final goal = await (select(weeklyGoals)
-          ..where((g) => g.personId.equals(personId)))
-        .getSingleOrNull();
+    final goal = await (select(
+      weeklyGoals,
+    )..where((g) => g.personId.equals(personId))).getSingleOrNull();
     return goal?.targetSessions ?? 3;
   }
 
@@ -435,14 +267,20 @@ Future<int> getSessionCountForFood(String foodId) async {
 
   Future<int> getSessionsThisWeek(String personId) async {
     final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
 
-    final count = await (selectOnly(sessions)
-          ..addColumns([sessions.id.count()])
-          ..where(sessions.personId.equals(personId) &
-              sessions.date.isBiggerOrEqualValue(monday)))
-        .getSingle();
+    final count =
+        await (selectOnly(sessions)
+              ..addColumns([sessions.id.count()])
+              ..where(
+                sessions.personId.equals(personId) &
+                    sessions.date.isBiggerOrEqualValue(monday),
+              ))
+            .getSingle();
     return count.read(sessions.id.count()) ?? 0;
   }
 
@@ -451,10 +289,12 @@ Future<int> getSessionCountForFood(String foodId) async {
       (select(badges)..where((b) => b.personId.equals(personId))).get();
 
   Future<bool> hasBadge(String personId, BadgeType type) async {
-    final existing = await (select(badges)
-          ..where((b) =>
-              b.personId.equals(personId) & b.badgeType.equals(type.name)))
-        .getSingleOrNull();
+    final existing =
+        await (select(badges)..where(
+              (b) =>
+                  b.personId.equals(personId) & b.badgeType.equals(type.name),
+            ))
+            .getSingleOrNull();
     return existing != null;
   }
 
@@ -473,18 +313,25 @@ Future<int> getSessionCountForFood(String foodId) async {
 
   // Controlla e sblocca eventuali badge dopo una sessione completata
   Future<List<BadgeType>> checkAndUnlockBadges(
-      String personId, String foodId, int achievedLevel) async {
+    String personId,
+    String foodId,
+    int achievedLevel,
+  ) async {
     final List<BadgeType> newlyUnlocked = [];
 
     // Prima sessione in assoluto
-    final totalSessions = await (selectOnly(sessions)
-          ..addColumns([sessions.id.count()])
-          ..where(sessions.personId.equals(personId) &
-              sessions.achievedLevel.isNotNull()))
-        .getSingle();
+    final totalSessions =
+        await (selectOnly(sessions)
+              ..addColumns([sessions.id.count()])
+              ..where(
+                sessions.personId.equals(personId) &
+                    sessions.achievedLevel.isNotNull(),
+              ))
+            .getSingle();
     final sessionCount = totalSessions.read(sessions.id.count()) ?? 0;
 
-    if (sessionCount == 1 && !await hasBadge(personId, BadgeType.firstSession)) {
+    if (sessionCount == 1 &&
+        !await hasBadge(personId, BadgeType.firstSession)) {
       await unlockBadge(personId, BadgeType.firstSession);
       newlyUnlocked.add(BadgeType.firstSession);
     }
@@ -513,12 +360,15 @@ Future<int> getSessionCountForFood(String foodId) async {
     }
 
     // 5 alimenti diversi provati (almeno una sessione completata)
-    final foodsWithSessions = await (selectOnly(sessions)
-          ..addColumns([sessions.foodId])
-          ..where(sessions.personId.equals(personId) &
-              sessions.achievedLevel.isNotNull())
-          ..groupBy([sessions.foodId]))
-        .get();
+    final foodsWithSessions =
+        await (selectOnly(sessions)
+              ..addColumns([sessions.foodId])
+              ..where(
+                sessions.personId.equals(personId) &
+                    sessions.achievedLevel.isNotNull(),
+              )
+              ..groupBy([sessions.foodId]))
+            .get();
     if (foodsWithSessions.length >= 5 &&
         !await hasBadge(personId, BadgeType.fiveFoodsTriedDifferent)) {
       await unlockBadge(personId, BadgeType.fiveFoodsTriedDifferent);

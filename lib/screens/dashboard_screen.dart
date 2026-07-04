@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/exposure_level.dart';
 import '../database/app_database.dart';
 import '../providers/dashboard_provider.dart';
 import 'achivements_screen.dart';
@@ -34,8 +35,9 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       body: dashboardAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: Colors.orange)),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Colors.orange),
+        ),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (data) => RefreshIndicator(
           onRefresh: () =>
@@ -63,8 +65,7 @@ class DashboardScreen extends ConsumerWidget {
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
@@ -127,8 +128,7 @@ class _WeeklyGoalCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: (sessionsThisWeek / weeklyGoal).clamp(0, 1),
               backgroundColor: Colors.white.withValues(alpha: 0.3),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               minHeight: 10,
             ),
           ),
@@ -175,21 +175,17 @@ class _FoodProgressCard extends StatelessWidget {
 
     return Card(
       elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(food.category.emoji,
-                style: const TextStyle(fontSize: 36)),
+            Text(food.category.emoji, style: const TextStyle(fontSize: 36)),
             Text(
               food.name,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -208,8 +204,7 @@ class _FoodProgressCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   level.label,
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -217,13 +212,11 @@ class _FoodProgressCard extends StatelessWidget {
             ),
             Row(
               children: [
-                Icon(Icons.event_note,
-                    size: 14, color: Colors.grey.shade500),
+                Icon(Icons.event_note, size: 14, color: Colors.grey.shade500),
                 const SizedBox(width: 4),
                 Text(
                   '${item.sessionCount} sessioni',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),

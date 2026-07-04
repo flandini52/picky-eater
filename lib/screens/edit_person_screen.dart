@@ -9,8 +9,7 @@ class EditPersonScreen extends ConsumerStatefulWidget {
   const EditPersonScreen({super.key, required this.person});
 
   @override
-  ConsumerState<EditPersonScreen> createState() =>
-      _EditPersonScreenState();
+  ConsumerState<EditPersonScreen> createState() => _EditPersonScreenState();
 }
 
 class _EditPersonScreenState extends ConsumerState<EditPersonScreen> {
@@ -60,9 +59,7 @@ class _EditPersonScreenState extends ConsumerState<EditPersonScreen> {
     );
 
     if (confirmed == true) {
-      await ref
-          .read(personRepositoryProvider)
-          .deletePerson(widget.person.id);
+      await ref.read(personRepositoryProvider).deletePerson(widget.person.id);
       if (mounted) Navigator.pop(context, true);
     }
   }
@@ -108,8 +105,7 @@ class _EditPersonScreenState extends ConsumerState<EditPersonScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _confirmDelete,
-                icon:
-                    const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
                 label: const Text(
                   'Elimina persona',
                   style: TextStyle(color: Colors.red),

@@ -9,16 +9,16 @@ class SessionRepository {
 
   // Mapper Drift → dominio
   SessionEntity _toEntity(Session session) => SessionEntity(
-        id: session.id,
-        personId: session.personId,
-        foodId: session.foodId,
-        date: session.date,
-        targetLevel: session.targetLevel,
-        activity: session.activity,
-        achievedLevel: session.achievedLevel,
-        achievedActivity: session.achievedActivity,
-        notes: session.notes,
-      );
+    id: session.id,
+    personId: session.personId,
+    foodId: session.foodId,
+    date: session.date,
+    targetLevel: session.targetLevel,
+    activity: session.activity,
+    achievedLevel: session.achievedLevel,
+    achievedActivity: session.achievedActivity,
+    notes: session.notes,
+  );
 
   Future<List<SessionEntity>> getSessionsByPerson(String personId) async {
     final sessions = await _db.getSessionsByPerson(personId);
@@ -26,14 +26,14 @@ class SessionRepository {
   }
 
   Future<List<SessionEntity>> getSessionsByPersonAndDate(
-      String personId, DateTime date) async {
-    final sessions =
-        await _db.getSessionsByPersonAndDate(personId, date);
+    String personId,
+    DateTime date,
+  ) async {
+    final sessions = await _db.getSessionsByPersonAndDate(personId, date);
     return sessions.map(_toEntity).toList();
   }
 
-  Future<List<SessionEntity>> getCompletedSessionsForFood(
-      String foodId) async {
+  Future<List<SessionEntity>> getCompletedSessionsForFood(String foodId) async {
     final sessions = await _db.getCompletedSessionsForFood(foodId);
     return sessions.map(_toEntity).toList();
   }
@@ -48,21 +48,21 @@ class SessionRepository {
     required DateTime date,
     required int targetLevel,
     String? activity,
-  }) =>
-      _db.insertSession(SessionsCompanion.insert(
-        id: id,
-        personId: personId,
-        foodId: foodId,
-        date: date,
-        targetLevel: targetLevel,
-        activity: Value(activity),
-      ));
+  }) => _db.insertSession(
+    SessionsCompanion.insert(
+      id: id,
+      personId: personId,
+      foodId: foodId,
+      date: date,
+      targetLevel: targetLevel,
+      activity: Value(activity),
+    ),
+  );
 
   Future<void> completeSession({
     required String sessionId,
     required int achievedLevel,
     String? achievedActivity,
     String? notes,
-  }) =>
-      _db.completeSession(sessionId, achievedLevel, achievedActivity, notes);
+  }) => _db.completeSession(sessionId, achievedLevel, achievedActivity, notes);
 }

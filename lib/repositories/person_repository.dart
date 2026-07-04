@@ -7,12 +7,12 @@ class PersonRepository {
   PersonRepository(this._db);
 
   PersonEntity _toEntity(Person person) => PersonEntity(
-        id: person.id,
-        familyId: person.familyId,
-        name: person.name,
-        birthDate: person.birthDate,
-        avatarColor: person.avatarColor,
-      );
+    id: person.id,
+    familyId: person.familyId,
+    name: person.name,
+    birthDate: person.birthDate,
+    avatarColor: person.avatarColor,
+  );
 
   Future<List<PersonEntity>> getPersonsByFamily(String familyId) async {
     final persons = await _db.getPersonsByFamily(familyId);
@@ -23,16 +23,12 @@ class PersonRepository {
     required String id,
     required String familyId,
     required String name,
-  }) =>
-      _db.insertPerson(PersonsCompanion.insert(
-        id: id,
-        familyId: familyId,
-        name: name,
-      ));
+  }) => _db.insertPerson(
+    PersonsCompanion.insert(id: id, familyId: familyId, name: name),
+  );
 
   Future<void> updatePersonName(String personId, String name) =>
       _db.updatePersonName(personId, name);
 
-  Future<void> deletePerson(String personId) =>
-      _db.deletePerson(personId);
+  Future<void> deletePerson(String personId) => _db.deletePerson(personId);
 }

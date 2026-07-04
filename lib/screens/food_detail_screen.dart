@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../core/exposure_level.dart';
 import '../database/app_database.dart';
+import '../models/food_entity.dart';
 import '../models/session_entity.dart';
 import '../providers/dashboard_provider.dart';
 
 class FoodDetailScreen extends ConsumerWidget {
-  final Food food;
+  final FoodEntity food;
 
   const FoodDetailScreen({super.key, required this.food});
 
@@ -25,7 +27,8 @@ class FoodDetailScreen extends ConsumerWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(
-                child: CircularProgressIndicator(color: Colors.orange));
+              child: CircularProgressIndicator(color: Colors.orange),
+            );
           }
           final sessions = snapshot.data!;
           final level = ExposureLevel.values[food.currentLevel];
@@ -40,21 +43,29 @@ class FoodDetailScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Text(food.category.emoji,
-                        style: const TextStyle(fontSize: 40)),
+                    Text(
+                      food.category.emoji,
+                      style: const TextStyle(fontSize: 40),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(level.label,
-                              style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold)),
-                          Text(level.description,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600)),
+                          Text(
+                            level.label,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            level.description,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -75,21 +86,22 @@ class FoodDetailScreen extends ConsumerWidget {
                 else ...[
                   _StatsRow(sessions: sessions),
                   const SizedBox(height: 24),
-                  const Text('Andamento nel tempo',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Andamento nel tempo',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 220,
                     child: _ProgressChart(sessions: sessions),
                   ),
                   const SizedBox(height: 28),
-                  const Text('Storico sessioni',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Storico sessioni',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
-                  ...sessions.reversed
-                      .map((s) => _HistoryItem(session: s)),
+                  ...sessions.reversed.map((s) => _HistoryItem(session: s)),
                 ],
               ],
             ),
@@ -116,14 +128,18 @@ class _StatsRow extends StatelessWidget {
         Expanded(child: _StatCard('${sessions.length}', 'Sessioni totali')),
         const SizedBox(width: 8),
         Expanded(
-            child: _StatCard(
-                '${firstDate.day}/${firstDate.month}', 'Prima sessione')),
+          child: _StatCard(
+            '${firstDate.day}/${firstDate.month}',
+            'Prima sessione',
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(
-            child: _StatCard(
-          daysSinceLast == 0 ? 'Oggi' : '$daysSinceLast gg fa',
-          'Ultima sessione',
-        )),
+          child: _StatCard(
+            daysSinceLast == 0 ? 'Oggi' : '$daysSinceLast gg fa',
+            'Ultima sessione',
+          ),
+        ),
       ],
     );
   }
@@ -145,15 +161,20 @@ class _StatCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-              textAlign: TextAlign.center),
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -171,8 +192,10 @@ class _ProgressChart extends StatelessWidget {
     final spots = <FlSpot>[];
 
     for (final session in sessions) {
-      final daysSinceStart =
-          session.date.difference(firstDate).inDays.toDouble();
+      final daysSinceStart = session.date
+          .difference(firstDate)
+          .inDays
+          .toDouble();
       int granular = granularIndexForActivity(session.achievedActivity);
       if (granular == -1) {
         granular = session.achievedLevel! * 3 + 1;
@@ -193,9 +216,11 @@ class _ProgressChart extends StatelessWidget {
         ),
         titlesData: FlTitlesData(
           rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
           topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -211,8 +236,9 @@ class _ProgressChart extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Text(
-                      ExposureLevel.values[levelIndex].label,
-                      style: const TextStyle(fontSize: 9)),
+                    ExposureLevel.values[levelIndex].label,
+                    style: const TextStyle(fontSize: 9),
+                  ),
                 );
               },
             ),
@@ -222,12 +248,13 @@ class _ProgressChart extends StatelessWidget {
               showTitles: true,
               reservedSize: 24,
               getTitlesWidget: (value, meta) {
-                final date =
-                    firstDate.add(Duration(days: value.toInt()));
+                final date = firstDate.add(Duration(days: value.toInt()));
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text('${date.day}/${date.month}',
-                      style: const TextStyle(fontSize: 9)),
+                  child: Text(
+                    '${date.day}/${date.month}',
+                    style: const TextStyle(fontSize: 9),
+                  ),
                 );
               },
             ),
@@ -242,8 +269,7 @@ class _ProgressChart extends StatelessWidget {
             barWidth: 3,
             dotData: FlDotData(
               show: true,
-              getDotPainter: (spot, percent, bar, index) =>
-                  FlDotCirclePainter(
+              getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
                 radius: 4,
                 color: Colors.orange,
                 strokeWidth: 2,
@@ -268,13 +294,20 @@ class _HistoryItem extends StatelessWidget {
 
   Color _levelColor(int level) {
     switch (level) {
-      case 0: return Colors.red.shade300;
-      case 1: return Colors.orange.shade300;
-      case 2: return Colors.yellow.shade600;
-      case 3: return Colors.lightGreen;
-      case 4: return Colors.blue.shade300;
-      case 5: return Colors.green;
-      default: return Colors.grey;
+      case 0:
+        return Colors.red.shade300;
+      case 1:
+        return Colors.orange.shade300;
+      case 2:
+        return Colors.yellow.shade600;
+      case 3:
+        return Colors.lightGreen;
+      case 4:
+        return Colors.blue.shade300;
+      case 5:
+        return Colors.green;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -300,39 +333,44 @@ class _HistoryItem extends StatelessWidget {
               Container(
                 width: 8,
                 height: 8,
-                decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Text(
                 '${session.date.day}/${session.date.month}/${session.date.year}',
                 style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
-              Text(achievedLevel.label,
-                  style: const TextStyle(fontSize: 11)),
+              Text(achievedLevel.label, style: const TextStyle(fontSize: 11)),
             ],
           ),
           if (session.achievedActivity != null) ...[
             const SizedBox(height: 6),
-            Text(session.achievedActivity!,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(
+              session.achievedActivity!,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
           ],
           if (session.achievedLevel != session.targetLevel) ...[
             const SizedBox(height: 4),
-            Text('Obiettivo era: ${targetLevel.label}',
-                style: TextStyle(
-                    fontSize: 10, color: Colors.grey.shade500)),
+            Text(
+              'Obiettivo era: ${targetLevel.label}',
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+            ),
           ],
           if (session.notes != null && session.notes!.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(session.notes!,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey.shade700)),
+            Text(
+              session.notes!,
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey.shade700,
+              ),
+            ),
           ],
         ],
       ),

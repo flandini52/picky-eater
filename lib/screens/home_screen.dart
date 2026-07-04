@@ -23,8 +23,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _refreshData() {
     setState(() => _dataVersion++);
     // Invalida anche la dashboard Riverpod
-    final personId =
-        ref.read(familyProvider).valueOrNull?.selectedPerson?.id;
+    final personId = ref.read(familyProvider).valueOrNull?.selectedPerson?.id;
     if (personId != null) {
       ref.invalidate(dashboardProvider(personId));
     }
@@ -52,16 +51,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isEmpty) return;
-                try {
+              try {
                 await ref
                     .read(familyProvider.notifier)
                     .addPerson(nameController.text);
                 if (mounted) Navigator.pop(context);
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Errore: $e')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Errore: $e')));
                 }
               }
             },
@@ -88,21 +87,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
-          builder: (_) => EditPersonScreen(person: driftPerson)),
+      MaterialPageRoute(builder: (_) => EditPersonScreen(person: driftPerson)),
     );
     if (result == true) {
       await ref.read(familyProvider.notifier).refresh();
     }
   }
 
-  void _openPersonMenu(
-      List<PersonEntity> persons, PersonEntity? selected) {
+  void _openPersonMenu(List<PersonEntity> persons, PersonEntity? selected) {
     showMenu<void>(
       context: context,
       position: const RelativeRect.fromLTRB(16, 90, 200, 0),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: [
         ...persons.map(
           (p) => PopupMenuItem<void>(
@@ -128,8 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ],
             ),
-            onTap: () =>
-                ref.read(familyProvider.notifier).selectPerson(p),
+            onTap: () => ref.read(familyProvider.notifier).selectPerson(p),
           ),
         ),
         const PopupMenuDivider(),
@@ -139,8 +134,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Icon(Icons.add, size: 18, color: Colors.orange),
               SizedBox(width: 8),
-              Text('Aggiungi persona o membro',
-                  style: TextStyle(color: Colors.orange)),
+              Text(
+                'Aggiungi persona o membro',
+                style: TextStyle(color: Colors.orange),
+              ),
             ],
           ),
         ),
@@ -165,13 +162,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return familyAsync.when(
       loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.orange),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Colors.orange)),
       ),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text('Errore: $e')),
-      ),
+      error: (e, _) => Scaffold(body: Center(child: Text('Errore: $e'))),
       data: (familyState) {
         final persons = familyState.persons;
         final selectedPerson = familyState.selectedPerson;
@@ -182,7 +175,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Container(
                 color: Colors.orange,
                 padding: const EdgeInsets.only(
-                    top: 30, left: 12, right: 4, bottom: 6),
+                  top: 30,
+                  left: 12,
+                  right: 4,
+                  bottom: 6,
+                ),
                 child: Row(
                   children: [
                     InkWell(
@@ -190,12 +187,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onTap: familyState.family == null
                           ? null
                           : (persons.isEmpty
-                              ? _addPerson
-                              : () => _openPersonMenu(
-                                  persons, selectedPerson)),
+                                ? _addPerson
+                                : () =>
+                                      _openPersonMenu(persons, selectedPerson)),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -208,16 +207,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.arrow_drop_down,
-                                color: Colors.white, size: 20),
+                            const Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ],
                         ),
                       ),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.settings,
-                          color: Colors.white, size: 20),
+                      icon: const Icon(
+                        Icons.settings,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: _openSettings,
                     ),
                   ],
@@ -246,39 +251,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       )
                     : _currentIndex == 0
-                        ? DashboardScreen(
-                            key: ValueKey(
-                                'dashboard_${selectedPerson.id}'),
-                            person: Person(
-                              id: selectedPerson.id,
-                              familyId: selectedPerson.familyId,
-                              name: selectedPerson.name,
-                              birthDate: selectedPerson.birthDate,
-                              avatarColor: selectedPerson.avatarColor,
-                            ),
-                          )
-                        : _currentIndex == 1
-                            ? FoodListScreen(
-                                key: ValueKey(
-                                    'foodlist_${selectedPerson.id}_$_dataVersion'),
-                                person: Person(
-                                  id: selectedPerson.id,
-                                  familyId: selectedPerson.familyId,
-                                  name: selectedPerson.name,
-                                  birthDate: selectedPerson.birthDate,
-                                  avatarColor: selectedPerson.avatarColor,
-                                ),
-                              )
-                            : CalendarScreen(
-                                person: Person(
-                                  id: selectedPerson.id,
-                                  familyId: selectedPerson.familyId,
-                                  name: selectedPerson.name,
-                                  birthDate: selectedPerson.birthDate,
-                                  avatarColor: selectedPerson.avatarColor,
-                                ),
-                                onDataChanged: _refreshData,
-                              ),
+                    ? DashboardScreen(
+                        key: ValueKey('dashboard_${selectedPerson.id}'),
+                        person: Person(
+                          id: selectedPerson.id,
+                          familyId: selectedPerson.familyId,
+                          name: selectedPerson.name,
+                          birthDate: selectedPerson.birthDate,
+                          avatarColor: selectedPerson.avatarColor,
+                        ),
+                      )
+                    : _currentIndex == 1
+                    ? FoodListScreen(
+                        key: ValueKey(
+                          'foodlist_${selectedPerson.id}_$_dataVersion',
+                        ),
+                        person: Person(
+                          id: selectedPerson.id,
+                          familyId: selectedPerson.familyId,
+                          name: selectedPerson.name,
+                          birthDate: selectedPerson.birthDate,
+                          avatarColor: selectedPerson.avatarColor,
+                        ),
+                      )
+                    : CalendarScreen(
+                        person: Person(
+                          id: selectedPerson.id,
+                          familyId: selectedPerson.familyId,
+                          name: selectedPerson.name,
+                          birthDate: selectedPerson.birthDate,
+                          avatarColor: selectedPerson.avatarColor,
+                        ),
+                        onDataChanged: _refreshData,
+                      ),
               ),
             ],
           ),
@@ -338,16 +343,16 @@ class _SettingsSheet extends StatelessWidget {
           const ListTile(
             leading: Icon(Icons.language, color: Colors.grey),
             title: Text('Lingua'),
-            trailing:
-                Text('Italiano', style: TextStyle(color: Colors.grey)),
+            trailing: Text('Italiano', style: TextStyle(color: Colors.grey)),
             enabled: false,
           ),
           const ListTile(
-            leading:
-                Icon(Icons.notifications_outlined, color: Colors.grey),
+            leading: Icon(Icons.notifications_outlined, color: Colors.grey),
             title: Text('Notifiche'),
-            trailing: Text('Presto disponibile',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
+            trailing: Text(
+              'Presto disponibile',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
             enabled: false,
           ),
           const SizedBox(height: 16),

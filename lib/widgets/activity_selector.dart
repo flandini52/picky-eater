@@ -23,15 +23,12 @@ class ActivitySelector extends StatelessWidget {
           onTap: () => onSelected(activity),
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color:
-                  isSelected ? Colors.orange.shade100 : Colors.grey.shade100,
+              color: isSelected ? Colors.orange.shade100 : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color:
-                    isSelected ? Colors.orange : Colors.grey.shade300,
+                color: isSelected ? Colors.orange : Colors.grey.shade300,
               ),
             ),
             child: Row(

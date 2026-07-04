@@ -9,12 +9,12 @@ class FoodRepository {
 
   // Mapper Drift → dominio
   FoodEntity _toEntity(Food food) => FoodEntity(
-        id: food.id,
-        personId: food.personId,
-        name: food.name,
-        category: food.category,
-        currentLevel: food.currentLevel,
-      );
+    id: food.id,
+    personId: food.personId,
+    name: food.name,
+    category: food.category,
+    currentLevel: food.currentLevel,
+  );
 
   Future<List<FoodEntity>> getFoodsByPerson(String personId) async {
     final foods = await _db.getFoodsByPerson(personId);
@@ -23,9 +23,9 @@ class FoodRepository {
 
   Future<FoodEntity?> getFoodById(String foodId) async {
     try {
-      final food = await (_db.select(_db.foods)
-            ..where((f) => f.id.equals(foodId)))
-          .getSingle();
+      final food = await (_db.select(
+        _db.foods,
+      )..where((f) => f.id.equals(foodId))).getSingle();
       return _toEntity(food);
     } catch (_) {
       return null;
@@ -38,21 +38,21 @@ class FoodRepository {
     required String name,
     required String category,
     int currentLevel = 0,
-  }) =>
-      _db.insertFood(FoodsCompanion.insert(
-        id: id,
-        personId: personId,
-        name: name,
-        category: category,
-        currentLevel: Value(currentLevel),
-      ));
+  }) => _db.insertFood(
+    FoodsCompanion.insert(
+      id: id,
+      personId: personId,
+      name: name,
+      category: category,
+      currentLevel: Value(currentLevel),
+    ),
+  );
 
   Future<void> updateFood({
     required String foodId,
     required String name,
     required String category,
-  }) =>
-      _db.updateFood(foodId, name, category);
+  }) => _db.updateFood(foodId, name, category);
 
   Future<void> updateFoodLevel(String foodId, int level) =>
       _db.updateFoodLevel(foodId, level);

@@ -9,9 +9,7 @@ void main() async {
   final database = AppDatabase();
   runApp(
     ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(database),
-      ],
+      overrides: [databaseProvider.overrideWithValue(database)],
       child: const MyApp(),
     ),
   );

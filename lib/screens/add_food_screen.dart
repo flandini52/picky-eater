@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../database/app_database.dart';
+import '../core/exposure_level.dart';
 import '../models/food_entity.dart';
 
 class AddFoodScreen extends StatefulWidget {
@@ -60,20 +60,16 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               items: categories
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
-              onChanged: (value) =>
-                  setState(() => selectedCategory = value!),
-              decoration:
-                  const InputDecoration(border: OutlineInputBorder()),
+              onChanged: (value) => setState(() => selectedCategory = value!),
+              decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExposureLevel>(
               initialValue: selectedLevel,
               items: ExposureLevel.values
-                  .map((l) =>
-                      DropdownMenuItem(value: l, child: Text(l.label)))
+                  .map((l) => DropdownMenuItem(value: l, child: Text(l.label)))
                   .toList(),
-              onChanged: (value) =>
-                  setState(() => selectedLevel = value!),
+              onChanged: (value) => setState(() => selectedLevel = value!),
               decoration: const InputDecoration(
                 labelText: 'Livello iniziale',
                 border: OutlineInputBorder(),

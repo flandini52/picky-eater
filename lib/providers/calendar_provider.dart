@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/badge_type.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
-import '../database/app_database.dart';
 import '../repositories/badge_repository.dart';
 import 'database_provider.dart';
 import 'dashboard_provider.dart';
@@ -41,12 +41,10 @@ class CalendarState {
 class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
   @override
   Future<CalendarState> build(String personId) async {
-    final foods =
-        await ref.read(foodRepositoryProvider).getFoodsByPerson(personId);
-    return CalendarState(
-      focusedDay: DateTime.now(),
-      foods: foods,
-    );
+    final foods = await ref
+        .read(foodRepositoryProvider)
+        .getFoodsByPerson(personId);
+    return CalendarState(focusedDay: DateTime.now(), foods: foods);
   }
 
   Future<void> selectDay(String personId, DateTime day) async {
@@ -57,11 +55,13 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
 
     final current =
         state.valueOrNull ?? CalendarState(focusedDay: DateTime.now());
-    state = AsyncData(current.copyWith(
-      selectedDay: day,
-      focusedDay: day,
-      sessionsForDay: sessions,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        selectedDay: day,
+        focusedDay: day,
+        sessionsForDay: sessions,
+      ),
+    );
   }
 
   Future<void> refreshSessionsForDay(String personId) async {
@@ -85,7 +85,9 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
     required int targetLevel,
     String? activity,
   }) async {
-    await ref.read(sessionRepositoryProvider).insertSession(
+    await ref
+        .read(sessionRepositoryProvider)
+        .insertSession(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           personId: personId,
           foodId: foodId,
@@ -105,7 +107,9 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
     String? achievedActivity,
     String? notes,
   }) async {
-    await ref.read(sessionRepositoryProvider).completeSession(
+    await ref
+        .read(sessionRepositoryProvider)
+        .completeSession(
           sessionId: sessionId,
           achievedLevel: achievedLevel,
           achievedActivity: achievedActivity,
@@ -132,5 +136,7 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
   }
 }
 
-final calendarProvider = AsyncNotifierProvider.family<CalendarNotifier,
-    CalendarState, String>(CalendarNotifier.new);
+final calendarProvider =
+    AsyncNotifierProvider.family<CalendarNotifier, CalendarState, String>(
+      CalendarNotifier.new,
+    );

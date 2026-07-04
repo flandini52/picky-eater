@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/badge_type.dart';
 import '../database/app_database.dart';
 import '../models/badge_entity.dart';
 import '../providers/calendar_provider.dart';
@@ -24,10 +25,10 @@ class AchievementsScreen extends ConsumerWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(
-                child: CircularProgressIndicator(color: Colors.orange));
+              child: CircularProgressIndicator(color: Colors.orange),
+            );
           }
-          final unlockedTypes =
-              snapshot.data!.map((b) => b.badgeType).toSet();
+          final unlockedTypes = snapshot.data!.map((b) => b.badgeType).toSet();
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -44,8 +45,7 @@ class AchievementsScreen extends ConsumerWidget {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   elevation: isUnlocked ? 3 : 0,
-                  color:
-                      isUnlocked ? Colors.white : Colors.grey.shade100,
+                  color: isUnlocked ? Colors.white : Colors.grey.shade100,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
@@ -80,10 +80,8 @@ class AchievementsScreen extends ConsumerWidget {
                       ),
                     ),
                     trailing: isUnlocked
-                        ? Icon(Icons.check_circle,
-                            color: Colors.green.shade400)
-                        : const Icon(Icons.lock_outline,
-                            color: Colors.grey),
+                        ? Icon(Icons.check_circle, color: Colors.green.shade400)
+                        : const Icon(Icons.lock_outline, color: Colors.grey),
                   ),
                 );
               },

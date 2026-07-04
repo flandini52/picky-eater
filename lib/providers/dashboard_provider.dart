@@ -76,7 +76,7 @@ class DashboardNotifier extends FamilyAsyncNotifier<DashboardData, String> {
   }
 }
 
-final dashboardProvider = AsyncNotifierProvider.family<DashboardNotifier,
-    DashboardData, String>(
-  DashboardNotifier.new,
-);
+final dashboardProvider =
+    AsyncNotifierProvider.family<DashboardNotifier, DashboardData, String>(
+      DashboardNotifier.new,
+    );

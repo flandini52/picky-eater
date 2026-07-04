@@ -41,7 +41,9 @@ class _EditFoodScreenState extends ConsumerState<EditFoodScreen> {
 
   Future<void> _save() async {
     if (nameController.text.isEmpty) return;
-    await ref.read(foodRepositoryProvider).updateFood(
+    await ref
+        .read(foodRepositoryProvider)
+        .updateFood(
           foodId: widget.food.id,
           name: nameController.text,
           category: selectedCategory,
@@ -106,10 +108,8 @@ class _EditFoodScreenState extends ConsumerState<EditFoodScreen> {
               items: categories
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
-              onChanged: (value) =>
-                  setState(() => selectedCategory = value!),
-              decoration:
-                  const InputDecoration(border: OutlineInputBorder()),
+              onChanged: (value) => setState(() => selectedCategory = value!),
+              decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 32),
             SizedBox(

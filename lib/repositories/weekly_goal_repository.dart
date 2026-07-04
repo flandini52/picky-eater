@@ -5,8 +5,7 @@ class WeeklyGoalRepository {
 
   WeeklyGoalRepository(this._db);
 
-  Future<int> getWeeklyGoal(String personId) =>
-      _db.getWeeklyGoal(personId);
+  Future<int> getWeeklyGoal(String personId) => _db.getWeeklyGoal(personId);
 
   Future<void> setWeeklyGoal(String personId, int target) =>
       _db.setWeeklyGoal(personId, target);
