@@ -50,7 +50,9 @@ class PdfReportService {
       ),
     );
 
-    final dir = await getTemporaryDirectory();
+    // Cartella documenti dell'app: privata ma persistente (non cancellata
+    // automaticamente dal sistema come la cache temporanea).
+    final dir = await getApplicationDocumentsDirectory();
     final safeName = person.name.replaceAll(RegExp(r'\s+'), '_');
     final fileName =
         'report_${safeName}_${_formatDateForFile(generatedAt)}.pdf';

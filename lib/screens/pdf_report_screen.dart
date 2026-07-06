@@ -28,7 +28,10 @@ class _PdfReportScreenState extends ConsumerState<PdfReportScreen> {
     try {
       final notifier = ref.read(pdfReportProvider(widget.person.id).notifier);
       final file = await notifier.generatePdf();
-      if (mounted) setState(() => _generatedFile = file);
+      if (mounted) {
+        setState(() => _generatedFile = file);
+        await _showGeneratedDialog(file);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -38,6 +41,33 @@ class _PdfReportScreenState extends ConsumerState<PdfReportScreen> {
     } finally {
       if (mounted) setState(() => _generating = false);
     }
+  }
+
+  Future<void> _showGeneratedDialog(File file) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(Icons.check_circle, color: Colors.green.shade600),
+        title: const Text('PDF generato con successo'),
+        content: Text(
+          'Salvato in:\n${file.path}',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Chiudi'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _shareFile();
+            },
+            child: const Text('Condividi ora'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _shareFile() async {

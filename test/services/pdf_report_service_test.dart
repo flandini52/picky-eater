@@ -10,6 +10,10 @@ import 'package:picky_eater/services/pdf_report_service.dart';
 class _FakePathProviderPlatform extends PathProviderPlatform {
   @override
   Future<String?> getTemporaryPath() async => Directory.systemTemp.path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async =>
+      Directory.systemTemp.path;
 }
 
 void main() {
