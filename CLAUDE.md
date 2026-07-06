@@ -12,7 +12,7 @@ App Flutter mobile per famiglie che seguono il metodo **SOS (Sequential Oral Sen
 
 ## Stack tecnico
 
-- **Flutter** 3.44.2, Dart 3.12.2, Material 3
+- **Flutter** 3.44.4, Dart 3.12.2, Material 3
 - **Drift** (SQLite locale) — ORM per la persistenza, con codice generato da `build_runner`
 - **flutter_riverpod** — state management con `AsyncNotifierProvider.family`
 - **fl_chart** — grafici andamento progressi
