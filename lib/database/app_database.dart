@@ -56,6 +56,7 @@ class Foods extends Table {
   TextColumn get name => text()();
   TextColumn get category => text()();
   IntColumn get currentLevel => integer().withDefault(const Constant(0))();
+  BoolColumn get isSafeFood => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -112,7 +113,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'picky_eater_db');
@@ -133,6 +134,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await m.addColumn(sessions, sessions.achievedActivity);
+      }
+      if (from < 6) {
+        await m.addColumn(foods, foods.isSafeFood);
       }
     },
   );
@@ -187,6 +191,11 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateFoodLevel(String foodId, int level) =>
       (update(foods)..where((f) => f.id.equals(foodId))).write(
         FoodsCompanion(currentLevel: Value(level)),
+      );
+
+  Future<void> setSafeFood(String foodId, bool isSafeFood) =>
+      (update(foods)..where((f) => f.id.equals(foodId))).write(
+        FoodsCompanion(isSafeFood: Value(isSafeFood)),
       );
 
   Future<String> getFoodName(String foodId) async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../core/app_theme.dart';
 import '../core/exposure_level.dart';
 import '../database/app_database.dart';
 import '../models/food_entity.dart';
@@ -17,18 +18,12 @@ class FoodDetailScreen extends ConsumerWidget {
     final sessionRepo = ref.watch(sessionRepositoryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(food.name),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: Text(food.name)),
       body: FutureBuilder<List<SessionEntity>>(
         future: sessionRepo.getCompletedSessionsForFood(food.id),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.orange),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
           final sessions = snapshot.data!;
           final level = ExposureLevel.values[food.currentLevel];
@@ -37,7 +32,6 @@ class FoodDetailScreen extends ConsumerWidget {
             onRefresh: () async {
               (context as Element).markNeedsBuild();
             },
-            color: Colors.orange,
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -156,7 +150,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: AppColors.salvia.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -166,7 +160,7 @@ class _StatCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.orange,
+              color: AppColors.salvia,
             ),
           ),
           const SizedBox(height: 2),
@@ -265,20 +259,20 @@ class _ProgressChart extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: Colors.orange,
+            color: AppColors.salvia,
             barWidth: 3,
             dotData: FlDotData(
               show: true,
               getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
                 radius: 4,
-                color: Colors.orange,
+                color: AppColors.salvia,
                 strokeWidth: 2,
                 strokeColor: Colors.white,
               ),
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: AppColors.salvia.withValues(alpha: 0.1),
             ),
           ),
         ],

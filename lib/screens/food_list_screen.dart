@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/app_theme.dart';
 import '../core/exposure_level.dart';
 import '../database/app_database.dart';
 import '../models/food_entity.dart';
@@ -19,7 +20,8 @@ class FoodListScreen extends ConsumerStatefulWidget {
 }
 
 class _FoodListScreenState extends ConsumerState<FoodListScreen> {
-  List<FoodEntity> _foods = [];
+  List<FoodEntity> _sosFoods = [];
+  List<FoodEntity> _safeFoods = [];
   Map<String, SessionEntity?> _lastSessionByFood = {};
   bool _loading = true;
 
@@ -42,18 +44,25 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
     final foodRepo = ref.read(foodRepositoryProvider);
     final sessionRepo = ref.read(sessionRepositoryProvider);
 
-    final foods = await foodRepo.getFoodsByPerson(widget.person.id);
-    foods.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final sosFoods = await foodRepo.getSosFoodsByPerson(widget.person.id);
+    final safeFoods = await foodRepo.getSafeFoodsByPerson(widget.person.id);
+    sosFoods.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    safeFoods.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
 
     final Map<String, SessionEntity?> lastSessions = {};
-    for (final food in foods) {
+    for (final food in [...sosFoods, ...safeFoods]) {
       final completed = await sessionRepo.getCompletedSessionsForFood(food.id);
       lastSessions[food.id] = completed.isNotEmpty ? completed.last : null;
     }
 
     if (!mounted) return;
     setState(() {
-      _foods = foods;
+      _sosFoods = sosFoods;
+      _safeFoods = safeFoods;
       _lastSessionByFood = lastSessions;
       _loading = false;
     });
@@ -81,7 +90,7 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
               return ListTile(
                 title: Text(level.label),
                 trailing: isSelected
-                    ? const Icon(Icons.check, color: Colors.orange)
+                    ? const Icon(Icons.check, color: AppColors.salvia)
                     : null,
                 onTap: () async {
                   await ref
@@ -97,6 +106,11 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
         );
       },
     );
+  }
+
+  Future<void> _removeFromSafeFoods(FoodEntity food) async {
+    await ref.read(foodRepositoryProvider).setSafeFood(food.id, false);
+    await _loadFoods();
   }
 
   Color _levelColor(int level) {
@@ -118,171 +132,209 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
     }
   }
 
+  Future<void> _openEditFood(FoodEntity food) async {
+    // Converti FoodEntity in Food per EditFoodScreen
+    final driftFood = Food(
+      id: food.id,
+      personId: food.personId,
+      name: food.name,
+      category: food.category,
+      currentLevel: food.currentLevel,
+      isSafeFood: food.isSafeFood,
+    );
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => EditFoodScreen(food: driftFood)),
+    );
+    if (result == true) await _loadFoods();
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey.shade700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFoodCard(FoodEntity food) {
+    final lastSession = _lastSessionByFood[food.id];
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => FoodDetailScreen(food: food)),
+          );
+          await _loadFoods();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Text(food.category.emoji, style: const TextStyle(fontSize: 26)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      food.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    if (food.isSafeFood)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '✓ Safe',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      )
+                    else ...[
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _levelColor(food.currentLevel),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              ExposureLevel.values[food.currentLevel].label,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (lastSession?.achievedActivity != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          lastSession!.achievedActivity!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+                onSelected: (value) async {
+                  if (value == 'edit') {
+                    await _openEditFood(food);
+                  } else if (value == 'level') {
+                    _showLevelPicker(food);
+                  } else if (value == 'remove_safe') {
+                    await _removeFromSafeFoods(food);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (food.isSafeFood)
+                    const PopupMenuItem(
+                      value: 'remove_safe',
+                      child: Row(
+                        children: [
+                          Icon(Icons.remove_circle_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text('Rimuovi da safe foods'),
+                        ],
+                      ),
+                    )
+                  else
+                    const PopupMenuItem(
+                      value: 'level',
+                      child: Row(
+                        children: [
+                          Icon(Icons.tune, size: 18),
+                          SizedBox(width: 8),
+                          Text('Imposta livello'),
+                        ],
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 18),
+                        SizedBox(width: 8),
+                        Text('Modifica'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isEmpty = _sosFoods.isEmpty && _safeFoods.isEmpty;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Alimenti di ${widget.person.name}'),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-          : _foods.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : isEmpty
           ? const Center(child: Text('Nessun alimento ancora. Aggiungine uno!'))
           : RefreshIndicator(
               onRefresh: _loadFoods,
-              color: Colors.orange,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: _foods.length,
-                itemBuilder: (context, index) {
-                  final food = _foods[index];
-                  final level = ExposureLevel.values[food.currentLevel];
-                  final color = _levelColor(food.currentLevel);
-                  final lastSession = _lastSessionByFood[food.id];
-
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 8),
+                children: [
+                  if (_sosFoods.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      'Alimenti in percorso (${_sosFoods.length})',
                     ),
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FoodDetailScreen(food: food),
-                          ),
-                        );
-                        await _loadFoods();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              food.category.emoji,
-                              style: const TextStyle(fontSize: 26),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    food.name,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: color,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          level.label,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade700,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (lastSession?.achievedActivity !=
-                                      null) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      lastSession!.achievedActivity!,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            PopupMenuButton<String>(
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              onSelected: (value) async {
-                                if (value == 'edit') {
-                                  // Converti FoodEntity in Food per EditFoodScreen
-                                  final driftFood = Food(
-                                    id: food.id,
-                                    personId: food.personId,
-                                    name: food.name,
-                                    category: food.category,
-                                    currentLevel: food.currentLevel,
-                                  );
-                                  final result = await Navigator.push<bool>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          EditFoodScreen(food: driftFood),
-                                    ),
-                                  );
-                                  if (result == true) await _loadFoods();
-                                } else if (value == 'level') {
-                                  _showLevelPicker(food);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'level',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.tune, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Imposta livello'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Modifica'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
+                    ..._sosFoods.map(_buildFoodCard),
+                  ],
+                  if (_safeFoods.isNotEmpty) ...[
+                    _buildSectionHeader('Safe foods (${_safeFoods.length})'),
+                    ..._safeFoods.map(_buildFoodCard),
+                  ],
+                ],
               ),
             ),
       floatingActionButton: FloatingActionButton(
@@ -302,11 +354,11 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
                   name: result.name,
                   category: result.category,
                   currentLevel: result.currentLevel,
+                  isSafeFood: result.isSafeFood,
                 );
             await _loadFoods();
           }
         },
-        backgroundColor: Colors.orange,
         child: const Icon(Icons.add),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/app_theme.dart';
 import '../core/badge_type.dart';
 import '../core/exposure_level.dart';
 import '../models/food_entity.dart';
@@ -102,11 +103,13 @@ class _CompleteSessionSheetState extends ConsumerState<CompleteSessionSheet> {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.orange.shade100
+                        ? AppColors.salvia.withValues(alpha: 0.15)
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected ? Colors.orange : Colors.grey.shade300,
+                      color: isSelected
+                          ? AppColors.salvia
+                          : Colors.grey.shade300,
                     ),
                   ),
                   child: Row(
@@ -115,7 +118,7 @@ class _CompleteSessionSheetState extends ConsumerState<CompleteSessionSheet> {
                         isSelected
                             ? Icons.check_circle
                             : Icons.radio_button_unchecked,
-                        color: isSelected ? Colors.orange : Colors.grey,
+                        color: isSelected ? AppColors.salvia : Colors.grey,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -187,8 +190,6 @@ class _CompleteSessionSheetState extends ConsumerState<CompleteSessionSheet> {
                   if (context.mounted) Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text('Salva sessione'),

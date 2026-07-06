@@ -104,8 +104,6 @@ class _AddSessionSheetState extends ConsumerState<AddSessionSheet> {
                         if (context.mounted) Navigator.pop(context);
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text('Pianifica sessione'),

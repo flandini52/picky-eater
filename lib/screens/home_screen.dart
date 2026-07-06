@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/app_theme.dart';
 import '../database/app_database.dart';
 import '../models/person_entity.dart';
 import '../providers/person_provider.dart';
 import '../providers/dashboard_provider.dart';
+import 'achivements_screen.dart';
 import 'food_list_screen.dart';
 import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
 import 'edit_person_screen.dart';
+import 'pdf_report_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -64,10 +67,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
             child: const Text('Aggiungi'),
           ),
         ],
@@ -132,11 +131,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onTap: () => Future.delayed(Duration.zero, _addPerson),
           child: const Row(
             children: [
-              Icon(Icons.add, size: 18, color: Colors.orange),
+              Icon(Icons.add, size: 18, color: AppColors.salvia),
               SizedBox(width: 8),
               Text(
                 'Aggiungi persona o membro',
-                style: TextStyle(color: Colors.orange),
+                style: TextStyle(color: AppColors.salvia),
               ),
             ],
           ),
@@ -161,9 +160,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final familyAsync = ref.watch(familyProvider);
 
     return familyAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Colors.orange)),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text('Errore: $e'))),
       data: (familyState) {
         final persons = familyState.persons;
@@ -173,7 +171,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           body: Column(
             children: [
               Container(
-                color: Colors.orange,
+                color: AppColors.salvia,
                 padding: const EdgeInsets.only(
                   top: 30,
                   left: 12,
@@ -217,6 +215,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
                     const Spacer(),
+                    if (_currentIndex == 0 && selectedPerson != null)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.emoji_events,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        tooltip: 'Traguardi',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AchievementsScreen(
+                                person: Person(
+                                  id: selectedPerson.id,
+                                  familyId: selectedPerson.familyId,
+                                  name: selectedPerson.name,
+                                  birthDate: selectedPerson.birthDate,
+                                  avatarColor: selectedPerson.avatarColor,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     IconButton(
                       icon: const Icon(
                         Icons.settings,
@@ -242,10 +265,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   : _addPerson,
                               icon: const Icon(Icons.person_add),
                               label: const Text('Aggiungi persona'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                              ),
                             ),
                           ],
                         ),
@@ -274,7 +293,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           avatarColor: selectedPerson.avatarColor,
                         ),
                       )
-                    : CalendarScreen(
+                    : _currentIndex == 2
+                    ? CalendarScreen(
                         person: Person(
                           id: selectedPerson.id,
                           familyId: selectedPerson.familyId,
@@ -283,13 +303,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           avatarColor: selectedPerson.avatarColor,
                         ),
                         onDataChanged: _refreshData,
-                      ),
+                      )
+                    : PdfReportScreen(person: selectedPerson),
               ),
             ],
           ),
           bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
             currentIndex: _currentIndex,
-            selectedItemColor: Colors.orange,
             onTap: (index) => setState(() => _currentIndex = index),
             items: const [
               BottomNavigationBarItem(
@@ -303,6 +324,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.calendar_month),
                 label: 'Calendario',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.picture_as_pdf),
+                label: 'Report',
               ),
             ],
           ),

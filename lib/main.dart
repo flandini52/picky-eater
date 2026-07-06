@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/app_theme.dart';
 import 'database/app_database.dart';
 import 'providers/database_provider.dart';
 import 'screens/home_screen.dart';
@@ -23,10 +24,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Picky Eater',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
-        useMaterial3: true,
-      ),
+      theme: buildAppTheme(),
       home: const HomeScreen(),
     );
   }

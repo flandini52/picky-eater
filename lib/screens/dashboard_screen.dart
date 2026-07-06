@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/app_theme.dart';
 import '../core/exposure_level.dart';
 import '../database/app_database.dart';
 import '../providers/dashboard_provider.dart';
-import 'achivements_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   final Person person;
@@ -15,34 +15,12 @@ class DashboardScreen extends ConsumerWidget {
     final dashboardAsync = ref.watch(dashboardProvider(person.id));
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Progressi di ${person.name}'),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.emoji_events),
-            tooltip: 'Traguardi',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AchievementsScreen(person: person),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
       body: dashboardAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.orange),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (data) => RefreshIndicator(
           onRefresh: () =>
               ref.read(dashboardProvider(person.id).notifier).refresh(),
-          color: Colors.orange,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -98,8 +76,8 @@ class _WeeklyGoalCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.orange.shade300, Colors.orange.shade500],
+        gradient: const LinearGradient(
+          colors: [AppColors.salvia, AppColors.salviaDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

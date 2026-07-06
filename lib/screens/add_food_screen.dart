@@ -15,6 +15,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
   final TextEditingController nameController = TextEditingController();
   String selectedCategory = 'frutta';
   ExposureLevel selectedLevel = ExposureLevel.tolerates;
+  bool isSafeFood = false;
 
   final List<String> categories = [
     'frutta',
@@ -35,11 +36,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuovo alimento'),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Nuovo alimento')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -63,18 +60,32 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               onChanged: (value) => setState(() => selectedCategory = value!),
               decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<ExposureLevel>(
-              initialValue: selectedLevel,
-              items: ExposureLevel.values
-                  .map((l) => DropdownMenuItem(value: l, child: Text(l.label)))
-                  .toList(),
-              onChanged: (value) => setState(() => selectedLevel = value!),
-              decoration: const InputDecoration(
-                labelText: 'Livello iniziale',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('È un safe food?'),
+              subtitle: const Text(
+                'Un alimento che il bambino già mangia senza difficoltà',
               ),
+              value: isSafeFood,
+              onChanged: (value) => setState(() => isSafeFood = value),
             ),
+            if (!isSafeFood) ...[
+              const SizedBox(height: 8),
+              DropdownButtonFormField<ExposureLevel>(
+                initialValue: selectedLevel,
+                items: ExposureLevel.values
+                    .map(
+                      (l) => DropdownMenuItem(value: l, child: Text(l.label)),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => selectedLevel = value!),
+                decoration: const InputDecoration(
+                  labelText: 'Livello iniziale',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -87,13 +98,14 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                     personId: widget.personId,
                     name: nameController.text,
                     category: selectedCategory,
-                    currentLevel: selectedLevel.index,
+                    currentLevel: isSafeFood
+                        ? ExposureLevel.eats.index
+                        : selectedLevel.index,
+                    isSafeFood: isSafeFood,
                   );
                   Navigator.pop(context, entity);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text('Aggiungi'),

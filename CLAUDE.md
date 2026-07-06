@@ -46,7 +46,8 @@ lib/
 ├── core/                        # Enum e costanti di dominio puri, zero dipendenze Drift
 │   ├── exposure_level.dart      # ExposureLevel + extension + levelActivities + granularIndex*
 │   ├── badge_type.dart          # BadgeType + extension
-│   └── session_outcome.dart     # SessionOutcome + extension (legacy)
+│   ├── session_outcome.dart     # SessionOutcome + extension (legacy)
+│   └── food_category_color.dart # foodCategoryColors + extension .categoryColor su String
 ├── database/
 │   ├── app_database.dart        # Tabelle Drift + query
 │   └── app_database.g.dart      # GENERATO — non editare manualmente
@@ -122,14 +123,24 @@ Usato nell'asse Y del grafico in `food_detail_screen.dart`.
 4. Se `achievedLevel > food.currentLevel` → aggiorna automaticamente il livello attuale dell'alimento
 5. Controlla e sblocca eventuali badge (BadgeType)
 
+### Safe foods
+
+Un alimento può essere marcato `isSafeFood` (`foods.isSafeFood`, `FoodEntity.isSafeFood`, default `false`) per indicare che il bambino lo mangia già senza difficoltà — non è più "in percorso SOS".
+
+- **`FoodRepository`**: `getSosFoodsByPerson` (solo `isSafeFood == false`), `getSafeFoodsByPerson` (solo `isSafeFood == true`), `setSafeFood(foodId, bool)`. `getFoodsByPerson` resta invariato e restituisce **tutti** gli alimenti (safe + SOS) — usato dove serve la lista completa.
+- **`food_list_screen.dart`**: due sezioni, "Alimenti in percorso" (SOS) e "Safe foods". Le card safe food mostrano un badge verde "✓ Safe" invece di barra progresso/livello, e il menu a tre puntini offre "Rimuovi da safe foods" invece di "Imposta livello".
+- **`add_food_screen.dart`**: toggle "È un safe food?" — se attivo nasconde il selettore livello e usa `ExposureLevel.eats` come livello di default.
+- **`calendar_screen.dart`**: il dropdown di `AddSessionSheet` mostra solo alimenti SOS — filtrato al punto di passaggio verso la sheet, **non** nel provider generale (altrimenti si romperebbe il lookup nome-alimento delle sessioni esistenti collegate ad alimenti diventati safe food nel frattempo).
+- **Report PDF**: sezione dedicata "Safe foods" (lista nome + categoria) prima della sezione progressi, che include solo gli alimenti SOS.
+
 ---
 
-## Database — schema attuale (schemaVersion: 5)
+## Database — schema attuale (schemaVersion: 6)
 
 ```
 families       → id, name
 persons        → id, familyId, name, birthDate, avatarColor
-foods          → id, personId, name, category, currentLevel
+foods          → id, personId, name, category, currentLevel, isSafeFood
 sessions       → id, personId, foodId, date, targetLevel, activity,
                  achievedLevel, achievedActivity, outcome(legacy), notes
 weeklyGoals    → personId, targetSessions
@@ -143,6 +154,7 @@ badges         → id, personId, badgeType, unlockedAt
 - v3 → create tabelle `weeklyGoals` e `badges`
 - v4 → aggiunto `sessions.outcome` (legacy, non più scritto attivamente)
 - v5 → aggiunto `sessions.achievedActivity`
+- v6 → aggiunto `foods.isSafeFood` (default `false`)
 
 **Dopo qualsiasi modifica allo schema**: incrementa `schemaVersion`, aggiungi la migrazione in `onUpgrade`, poi lancia `dart run build_runner build`.
 
@@ -228,7 +240,7 @@ Steps su ogni push/PR su `main`:
 2. `dart run build_runner build` (rigenera codice Drift — `app_database.g.dart` non è in repo)
 3. `dart format --output=none --set-exit-if-changed .` (zero file da riformattare)
 4. `flutter analyze` (zero errori attesi)
-5. `flutter test` (7 test: 3 FoodRepository + 3 SessionRepository + 1 placeholder)
+5. `flutter test` (11 test: 4 FoodRepository + 3 SessionRepository + 3 PdfReportService + 1 placeholder)
 6. `flutter build apk --debug` (verifica che l'APK si generi davvero, non solo che compili)
 
 **`app_database.g.dart` non è in repo** — viene rigenerato dal CI. Se aggiungi tabelle o query, ricordati di lanciare `dart run build_runner build` localmente prima di pushare.
@@ -249,6 +261,9 @@ Steps su ogni push/PR su `main`:
 - ✅ Schermata traguardi con badge sbloccati/bloccati
 - ✅ Modifica e cancellazione alimenti e persone (con cascata)
 - ✅ Impostazioni (placeholder lingua e notifiche)
+- ✅ Safe foods — marcare un alimento come "già mangiato senza difficoltà", escluso dal percorso SOS e dal calendario (vedi sezione Safe foods sopra)
+- ✅ Report PDF progressi — genera e condivide (WhatsApp/email/Telegram) un PDF con safe foods, alimenti in percorso e riepilogo (`lib/services/pdf_report_service.dart`, `pdf_report_provider.dart`, `pdf_report_screen.dart`, 4ª tab "Report" in `home_screen.dart`)
+- ✅ Redesign palette Salvia/Pesca/Crema/Corallo su tutte le schermate (non verificato visivamente su device)
 
 ---
 
@@ -260,27 +275,99 @@ Steps su ogni push/PR su `main`:
 - [ ] Espandere i test: `PersonRepository`, `BadgeRepository`
 - [ ] `lib/services/` è vuota — rimuovere o popolare quando si aggiungono notifiche/export
 
-### Funzionalità priorità alta
+### Decisione presa: PDF via share sheet, non QR
 
-- [ ] **QR code + PDF report** — genitore genera QR, professionista scansiona e scarica PDF progressi (feature differenziante, alta priorità commerciale)
-- [ ] **Notifiche locali** — promemoria sessioni pianificate
+Il flusso "QR code → professionista scansiona → scarica PDF" è stato **scartato**: un QR code contiene al massimo ~2-3 KB, un PDF con report di sessioni pesa molto di più — il QR non può trasportare il file stesso, servirebbe comunque un canale di trasferimento vero sotto (server/rete), che rompe il vincolo local-first.
+
+**Soluzione adottata**: nuova schermata (tab in basso a destra nella navigazione) con bottone "Genera PDF". Il genitore genera il PDF localmente, poi lo condivide tramite lo share sheet nativo di iOS/Android (pacchetto `share_plus`) — WhatsApp, email, Telegram, o qualunque app scelga l'utente. Resta 100% local-first, il file non passa mai da un server nostro.
+
+**Fatto**: implementato su 5 file — `lib/services/pdf_report_service.dart` (`PdfReportService` + `FoodReportData`, zero dipendenze Flutter/Riverpod, genera il PDF con pacchetto `pdf`: header, sezione "Safe foods" (nome + categoria), tabella sessioni per alimento SOS con colonna "Esito" colorata verde/ambra/blu coerente con `OutcomeBadge`, riepilogo generale con conteggio safe foods, footer con numero pagina), `lib/providers/pdf_report_provider.dart` (`PdfReportNotifier`, family su `personId`, carica safe foods e alimenti SOS separatamente via `getSafeFoodsByPerson`/`getSosFoodsByPerson`, raggruppa sessioni per alimento, espone `generatePdf()`), `lib/screens/pdf_report_screen.dart` (nessuna AppBar, coerente con le altre 3 tab — anteprima con sezione safe foods a chip + lista alimenti in percorso, **due bottoni separati**: "Genera PDF" — Corallo, crea il file in locale — e "Condividi PDF" — OutlinedButton, disabilitato finché non è stato generato un file, usa `SharePlus.instance.share(ShareParams(...))` — l'API moderna del pacchetto v13, `Share.shareXFiles` è deprecato), 4° tab "Report" in `home_screen.dart` (`BottomNavigationBarType.fixed` esplicito, necessario oltre i 3 item). Pacchetti aggiunti: `pdf`, `share_plus`, `path_provider` (+ `path_provider_platform_interface` come dev dependency per mockare i test). Nota tecnica: il carattere `—` (em dash) non è renderizzabile dal font base Helvetica del pacchetto `pdf` — usare `-` per i placeholder. Verificato con `flutter analyze`/`format`/`test` (11/11, incluso un test che valida la firma `%PDF-` del file generato e uno per il caso "solo safe foods, zero alimenti SOS") e build APK reale — non verificato visivamente (nessun tool screenshot in sessione).
+
+Il professionista **non ha un proprio account o vista nell'app** — riceve solo il PDF condiviso dal genitore. L'esperienza app oggi è single-sided (solo famiglia); un'eventuale vista professionista resta fuori scope per ora.
+
+Il QR resta un'idea valida ma **per un uso diverso**: eventuale futuro onboarding/referral professionista (il professionista genera un QR/link con un ID corto per collegare il proprio account al genitore ai fini della commissione referral) — non è collegato al trasferimento del PDF.
+
+### Design system — palette definita
+
+```
+Salvia   #7BA88C  — primario: navigazione, pulsanti principali. Calma, non clinico.
+Pesca    #F0997B  — secondario: illustrazioni, elementi decorativi legati al cibo.
+Crema    #FBF7EE  — sfondo principale delle schermate (più caldo del bianco puro).
+Corallo  #D85A30  — accento CTA e badge premio, usare con parsimonia (colore più acceso).
+Neutri   —         testo, sfondi secondari, card, divisori.
+```
+
+**Accenti di stato** (esito sessione, riusano il pattern outcome_badge già esistente):
+```
+Verde        — livello completato / successo
+Ambra        — in corso
+Blu          — informazione neutra
+Rosso tenue  — solo errori reali (MAI per "cibo difficile", che non è un errore)
+```
+
+Stile pastello confermato. Redesign da applicare **ovunque** nell'app (non solo dashboard), un'unica esperienza per ora (famiglia); nessuna variante palette per professionista, dato che il professionista non ha accesso diretto all'app.
+
+**Stato redesign**: completo su tutte le schermate, vedi `lib/core/app_theme.dart` (`AppColors`, `buildAppTheme()`, usato in `main.dart`). Aggiornate: `home_screen.dart`, `dashboard_screen.dart`, `food_list_screen.dart`, `calendar_screen.dart`, `food_detail_screen.dart`, `achivements_screen.dart`, `add_food_screen.dart`, `edit_food_screen.dart`, `edit_person_screen.dart`, `add_session_sheet.dart`, `complete_session_sheet.dart`, `activity_selector.dart` (widget condiviso). Zero `Colors.orange` rimasti per il brand chrome. La scala arcobaleno a 6 colori di `_levelColor()` (in `dashboard_screen.dart`, `food_list_screen.dart`, `food_detail_screen.dart`) è stata **lasciata invariata di proposito** (concetto separato dalla palette di brand, non specificato nel redesign). Il verde/rosso di stato in `achivements_screen.dart` (badge sbloccato/check) e i pulsanti rossi "Elimina" (destructive action) sono stati **lasciati invariati** perché già semanticamente corretti secondo gli accenti di stato definiti sopra.
+
+**Decisione presa: niente AppBar per le 3 tab (Progressi/Alimenti/Calendario)**. `DashboardScreen`, `FoodListScreen`, `CalendarScreen` avevano ciascuna una propria `AppBar` (title "Progressi di X"/"Alimenti di X"/"Calendario") impilata **sotto** l'header di `home_screen.dart` (che mostra già nome persona + impostazioni) — due blocchi ridondanti, uno dei quali duplicava il nome persona. Prima tentativo: ridurre `AppBarTheme.toolbarHeight` (56→48→24) — scartato perché a 24dp il testo si rompeva visivamente (andava in basso nel blocco). **Soluzione adottata**: rimossa del tutto la `AppBar` dalle 3 schermate tab (restano `Scaffold` senza `appBar:`); il pulsante "traguardi" (prima action della AppBar di `DashboardScreen`) è stato spostato nell'header di `home_screen.dart`, visibile solo quando la tab attiva è "Progressi". Il testo del titolo non è stato sostituito con altro: la label della tab nel bottom nav ("Progressi"/"Alimenti"/"Calendario") è già sufficiente. `AppBarTheme.toolbarHeight` **rimossa** (torna al default 56) perché le rimanenti schermate con AppBar (dettaglio alimento, traguardi, add/edit alimento/persona) sono route push a schermo intero, non impilate sotto l'header di `home_screen.dart`, quindi non hanno il problema del doppio blocco.
+
+Nessuna verifica visiva fatta (nessun tool screenshot disponibile in sessione) — solo `flutter analyze`/`format`/`test`/`build apk --debug` verdi. Da controllare su device prima di considerare la modifica conclusa.
+
+### Colori per alimento — fatto: `lib/core/food_category_color.dart`
+
+Mappa `foodCategoryColors` + extension `.categoryColor` su `String`, 7 tonalità pastello (rosa cipria, verde salvia chiaro, terracotta chiaro, azzurro polvere, sabbia, lavanda, malva) più un neutro di fallback. File isolato, non ancora cablato nelle schermate — l'integrazione visiva (calendario, lista alimenti, food detail) è parte del redesign (fase 3), non di questo step.
+
+### Colori per alimento — decisione: per macro-categoria, non per singolo alimento
+
+Motivazione: la tabella `foods` ha già un campo `category`, quindi zero migrazione di schema — si tratta solo di una `const Map<String, Color>` (o enum categoria→colore) in `lib/core/`. Usare colori per-alimento avrebbe richiesto o troppi colori (rischio di uscire dal tono pastello) o colori ripetuti tra alimenti diversi, vanificando lo scopo.
+
+Il colore-categoria va usato in modo consistente in tutta l'app (calendario, lista alimenti, food detail) ma **deve restare visivamente distinto dagli accenti di stato** (verde/ambra/blu/rosso sopra) per non generare ambiguità tra "categoria alimento" e "esito sessione". Serve una sotto-palette pastello dedicata alle categorie (es. lavanda, sabbia, azzurro polvere, terracotta chiaro), in armonia con Salvia/Pesca/Crema/Corallo ma fuori dal set semaforico. Il colore è un aiuto visivo di raggruppamento, non sostituisce il nome alimento in etichetta.
+
+### Notifiche locali — trigger confermato
+
+Per ora un solo trigger: quando si pianifica una sessione (`AddSessionSheet`), viene programmato un promemoria locale per la data/ora della sessione. Nessun'altra notifica (obiettivo settimanale, badge) per il momento — solo notifiche locali, nessun push da server.
+
+### Schermata statistiche — ripresa in roadmap
+
+Punto rimasto in sospeso da tempo: separare "Progressi" (analytics vere: trend, confronti tra alimenti/periodi) da "Alimenti" (lista operativa, oggi mescolate in `food_list_screen.dart`/`dashboard_screen.dart`). Da riprendere e specificare come parte del redesign.
+
+### Ordine di lavoro concordato (feature in corso)
+
+1. **Fase 0 — Bundle ID + `android:allowBackup="false"`** — `allowBackup="false"` fatto. Bundle ID rimandato: verrà scelto come reverse-DNS di un dominio non ancora acquistato (oggi resta il placeholder `com.example.picky_eater` / `com.example.pickyEater`) — da fare prima della build di release, non blocca il lavoro attuale
+2. ~~**Colori per macro-categoria**~~ — fatto, vedi `lib/core/food_category_color.dart`
+3. ~~**Redesign completo**~~ — fatto su tutte le schermate, vedi sezione sopra (manca solo la verifica visiva su device)
+4. ~~**PDF + share sheet**~~ — fatto, vedi sezione sopra. Nota: non include ancora il banner di sicurezza/privacy dati menzionato originariamente — da valutare se aggiungerlo
+5. **Notifiche locali** — promemoria sessione pianificata (unico trigger per ora)
+6. **TestFlight beta** con la business partner
+7. **Keystore release + store assets + monetizzazione** — ultimo miglio
+
+### Funzionalità priorità alta (aggiornate)
+
+- [x] **Colori per macro-categoria alimento** — `lib/core/food_category_color.dart`, non ancora cablato nella UI (parte del redesign)
+- [x] **Redesign completo ovunque** — palette Salvia/Pesca/Crema/Corallo + neutri, stile pastello, un'unica esperienza (famiglia). Non verificato visivamente su device
+- [ ] **Schermata statistiche/Progressi** — separare da "Alimenti", non ancora affrontato nonostante il redesign (era previsto "come parte del redesign" ma non è stato fatto)
+- [x] **PDF report + share sheet** — fatto (vedi sopra). Manca ancora: banner di sicurezza/privacy dati nella schermata (era nella richiesta originale, non implementato)
+- [ ] **Notifiche locali** — promemoria sessione pianificata (trigger confermato, unico per ora)
 - [ ] **Obiettivo settimanale configurabile** — ora fisso a 3, deve essere modificabile dall'utente
 - [ ] **Onboarding** — schermata introduttiva per nuovi utenti con spiegazione metodo SOS
 
 ### Funzionalità priorità media
 
-- [ ] **Analytics dashboard** — separare "Progressi" (analytics veri: trend, confronti) da "Alimenti" (lista operativa)
 - [ ] **Drag & drop** riordinamento alimenti nella lista
+- [ ] **QR onboarding/referral professionista** — riuso dell'idea QR originale, per collegare account professionista-famiglia ai fini commissione referral (non per il PDF)
 
 ### Prima del lancio
 
-- [ ] App icon e splash screen
+- [ ] App icon e splash screen (coordinati con il redesign)
 - [ ] Nome app definitivo (ora "Picky Eater")
-- [ ] Bundle ID (`com.tuonome.pickyeater`)
+- [ ] Bundle ID definitivo — rimandato: sarà il reverse-DNS di un dominio non ancora acquistato, va fatto prima della build di release
+- [x] `android:allowBackup="false"` — impostato in `android/app/src/main/AndroidManifest.xml`
+- [ ] Keystore di release proprio — oggi il build di release usa ancora la firma di debug, Google Play non lo accetterebbe
 - [ ] Privacy policy (obbligatoria per App Store — tratta dati di minori)
 - [ ] Build release firmata per Google Play (`flutter build appbundle --release`)
 - [ ] Xcode setup completo per TestFlight/App Store
 - [ ] Aggiungere `flutter build apk --release` al CI
+- [ ] Valutare cifratura del database (SQLCipher) prima del lancio pubblico — dati potenzialmente sanitari di minori, oggi non cifrati at-rest
 
 ---
 

@@ -4,6 +4,7 @@ class FoodEntity {
   final String name;
   final String category;
   final int currentLevel;
+  final bool isSafeFood;
 
   const FoodEntity({
     required this.id,
@@ -11,6 +12,7 @@ class FoodEntity {
     required this.name,
     required this.category,
     required this.currentLevel,
+    this.isSafeFood = false,
   });
 
   FoodEntity copyWith({
@@ -19,6 +21,7 @@ class FoodEntity {
     String? name,
     String? category,
     int? currentLevel,
+    bool? isSafeFood,
   }) {
     return FoodEntity(
       id: id ?? this.id,
@@ -26,6 +29,7 @@ class FoodEntity {
       name: name ?? this.name,
       category: category ?? this.category,
       currentLevel: currentLevel ?? this.currentLevel,
+      isSafeFood: isSafeFood ?? this.isSafeFood,
     );
   }
 }

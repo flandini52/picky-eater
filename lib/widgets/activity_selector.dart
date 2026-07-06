@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_theme.dart';
 
 /// Lista di attività selezionabili, riutilizzabile sia nella pianificazione
 /// che nella registrazione sessione.
@@ -25,10 +26,12 @@ class ActivitySelector extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.orange.shade100 : Colors.grey.shade100,
+              color: isSelected
+                  ? AppColors.salvia.withValues(alpha: 0.15)
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? Colors.orange : Colors.grey.shade300,
+                color: isSelected ? AppColors.salvia : Colors.grey.shade300,
               ),
             ),
             child: Row(
@@ -37,7 +40,7 @@ class ActivitySelector extends StatelessWidget {
                   isSelected
                       ? Icons.check_circle
                       : Icons.radio_button_unchecked,
-                  color: isSelected ? Colors.orange : Colors.grey,
+                  color: isSelected ? AppColors.salvia : Colors.grey,
                   size: 20,
                 ),
                 const SizedBox(width: 8),

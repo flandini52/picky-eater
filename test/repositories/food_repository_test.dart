@@ -117,5 +117,53 @@ void main() {
       final sessions = await db.getSessionsByPerson('person_1');
       expect(sessions, isEmpty);
     });
+
+    test(
+      'setSafeFood marca un alimento come safe e getSosFoodsByPerson lo esclude',
+      () async {
+        final repo = container.read(foodRepositoryProvider);
+
+        await db.insertFamily(
+          FamiliesCompanion.insert(id: 'family_1', name: 'Test Family'),
+        );
+        await db.insertPerson(
+          PersonsCompanion.insert(
+            id: 'person_1',
+            familyId: 'family_1',
+            name: 'Test Person',
+          ),
+        );
+        await repo.insertFood(
+          id: 'food_1',
+          personId: 'person_1',
+          name: 'Carota',
+          category: 'verdura',
+        );
+        await repo.insertFood(
+          id: 'food_2',
+          personId: 'person_1',
+          name: 'Mela',
+          category: 'frutta',
+        );
+
+        // Prima di setSafeFood entrambi sono in percorso SOS
+        var sosFoods = await repo.getSosFoodsByPerson('person_1');
+        expect(sosFoods.length, 2);
+        expect(await repo.getSafeFoodsByPerson('person_1'), isEmpty);
+
+        await repo.setSafeFood('food_2', true);
+
+        final foods = await repo.getFoodsByPerson('person_1');
+        expect(foods.firstWhere((f) => f.id == 'food_2').isSafeFood, isTrue);
+
+        sosFoods = await repo.getSosFoodsByPerson('person_1');
+        expect(sosFoods.length, 1);
+        expect(sosFoods.first.id, 'food_1');
+
+        final safeFoods = await repo.getSafeFoodsByPerson('person_1');
+        expect(safeFoods.length, 1);
+        expect(safeFoods.first.id, 'food_2');
+      },
+    );
   });
 }

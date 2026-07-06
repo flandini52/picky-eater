@@ -631,6 +631,21 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _isSafeFoodMeta = const VerificationMeta(
+    'isSafeFood',
+  );
+  @override
+  late final GeneratedColumn<bool> isSafeFood = GeneratedColumn<bool>(
+    'is_safe_food',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_safe_food" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -638,6 +653,7 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     name,
     category,
     currentLevel,
+    isSafeFood,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -689,6 +705,15 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         ),
       );
     }
+    if (data.containsKey('is_safe_food')) {
+      context.handle(
+        _isSafeFoodMeta,
+        isSafeFood.isAcceptableOrUnknown(
+          data['is_safe_food']!,
+          _isSafeFoodMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -718,6 +743,10 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.int,
         data['${effectivePrefix}current_level'],
       )!,
+      isSafeFood: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_safe_food'],
+      )!,
     );
   }
 
@@ -733,12 +762,14 @@ class Food extends DataClass implements Insertable<Food> {
   final String name;
   final String category;
   final int currentLevel;
+  final bool isSafeFood;
   const Food({
     required this.id,
     required this.personId,
     required this.name,
     required this.category,
     required this.currentLevel,
+    required this.isSafeFood,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -748,6 +779,7 @@ class Food extends DataClass implements Insertable<Food> {
     map['name'] = Variable<String>(name);
     map['category'] = Variable<String>(category);
     map['current_level'] = Variable<int>(currentLevel);
+    map['is_safe_food'] = Variable<bool>(isSafeFood);
     return map;
   }
 
@@ -758,6 +790,7 @@ class Food extends DataClass implements Insertable<Food> {
       name: Value(name),
       category: Value(category),
       currentLevel: Value(currentLevel),
+      isSafeFood: Value(isSafeFood),
     );
   }
 
@@ -772,6 +805,7 @@ class Food extends DataClass implements Insertable<Food> {
       name: serializer.fromJson<String>(json['name']),
       category: serializer.fromJson<String>(json['category']),
       currentLevel: serializer.fromJson<int>(json['currentLevel']),
+      isSafeFood: serializer.fromJson<bool>(json['isSafeFood']),
     );
   }
   @override
@@ -783,6 +817,7 @@ class Food extends DataClass implements Insertable<Food> {
       'name': serializer.toJson<String>(name),
       'category': serializer.toJson<String>(category),
       'currentLevel': serializer.toJson<int>(currentLevel),
+      'isSafeFood': serializer.toJson<bool>(isSafeFood),
     };
   }
 
@@ -792,12 +827,14 @@ class Food extends DataClass implements Insertable<Food> {
     String? name,
     String? category,
     int? currentLevel,
+    bool? isSafeFood,
   }) => Food(
     id: id ?? this.id,
     personId: personId ?? this.personId,
     name: name ?? this.name,
     category: category ?? this.category,
     currentLevel: currentLevel ?? this.currentLevel,
+    isSafeFood: isSafeFood ?? this.isSafeFood,
   );
   Food copyWithCompanion(FoodsCompanion data) {
     return Food(
@@ -808,6 +845,9 @@ class Food extends DataClass implements Insertable<Food> {
       currentLevel: data.currentLevel.present
           ? data.currentLevel.value
           : this.currentLevel,
+      isSafeFood: data.isSafeFood.present
+          ? data.isSafeFood.value
+          : this.isSafeFood,
     );
   }
 
@@ -818,13 +858,15 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('personId: $personId, ')
           ..write('name: $name, ')
           ..write('category: $category, ')
-          ..write('currentLevel: $currentLevel')
+          ..write('currentLevel: $currentLevel, ')
+          ..write('isSafeFood: $isSafeFood')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, personId, name, category, currentLevel);
+  int get hashCode =>
+      Object.hash(id, personId, name, category, currentLevel, isSafeFood);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -833,7 +875,8 @@ class Food extends DataClass implements Insertable<Food> {
           other.personId == this.personId &&
           other.name == this.name &&
           other.category == this.category &&
-          other.currentLevel == this.currentLevel);
+          other.currentLevel == this.currentLevel &&
+          other.isSafeFood == this.isSafeFood);
 }
 
 class FoodsCompanion extends UpdateCompanion<Food> {
@@ -842,6 +885,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<String> name;
   final Value<String> category;
   final Value<int> currentLevel;
+  final Value<bool> isSafeFood;
   final Value<int> rowid;
   const FoodsCompanion({
     this.id = const Value.absent(),
@@ -849,6 +893,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.name = const Value.absent(),
     this.category = const Value.absent(),
     this.currentLevel = const Value.absent(),
+    this.isSafeFood = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FoodsCompanion.insert({
@@ -857,6 +902,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     required String name,
     required String category,
     this.currentLevel = const Value.absent(),
+    this.isSafeFood = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        personId = Value(personId),
@@ -868,6 +914,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<String>? name,
     Expression<String>? category,
     Expression<int>? currentLevel,
+    Expression<bool>? isSafeFood,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -876,6 +923,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (name != null) 'name': name,
       if (category != null) 'category': category,
       if (currentLevel != null) 'current_level': currentLevel,
+      if (isSafeFood != null) 'is_safe_food': isSafeFood,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -886,6 +934,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<String>? name,
     Value<String>? category,
     Value<int>? currentLevel,
+    Value<bool>? isSafeFood,
     Value<int>? rowid,
   }) {
     return FoodsCompanion(
@@ -894,6 +943,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       name: name ?? this.name,
       category: category ?? this.category,
       currentLevel: currentLevel ?? this.currentLevel,
+      isSafeFood: isSafeFood ?? this.isSafeFood,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -916,6 +966,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     if (currentLevel.present) {
       map['current_level'] = Variable<int>(currentLevel.value);
     }
+    if (isSafeFood.present) {
+      map['is_safe_food'] = Variable<bool>(isSafeFood.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -930,6 +983,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('currentLevel: $currentLevel, ')
+          ..write('isSafeFood: $isSafeFood, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3054,6 +3108,7 @@ typedef $$FoodsTableCreateCompanionBuilder =
       required String name,
       required String category,
       Value<int> currentLevel,
+      Value<bool> isSafeFood,
       Value<int> rowid,
     });
 typedef $$FoodsTableUpdateCompanionBuilder =
@@ -3063,6 +3118,7 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> category,
       Value<int> currentLevel,
+      Value<bool> isSafeFood,
       Value<int> rowid,
     });
 
@@ -3132,6 +3188,11 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<int> get currentLevel => $composableBuilder(
     column: $table.currentLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSafeFood => $composableBuilder(
+    column: $table.isSafeFood,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3213,6 +3274,11 @@ class $$FoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isSafeFood => $composableBuilder(
+    column: $table.isSafeFood,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$PersonsTableOrderingComposer get personId {
     final $$PersonsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3257,6 +3323,11 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<int> get currentLevel => $composableBuilder(
     column: $table.currentLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSafeFood => $composableBuilder(
+    column: $table.isSafeFood,
     builder: (column) => column,
   );
 
@@ -3342,6 +3413,7 @@ class $$FoodsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<int> currentLevel = const Value.absent(),
+                Value<bool> isSafeFood = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
@@ -3349,6 +3421,7 @@ class $$FoodsTableTableManager
                 name: name,
                 category: category,
                 currentLevel: currentLevel,
+                isSafeFood: isSafeFood,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3358,6 +3431,7 @@ class $$FoodsTableTableManager
                 required String name,
                 required String category,
                 Value<int> currentLevel = const Value.absent(),
+                Value<bool> isSafeFood = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
@@ -3365,6 +3439,7 @@ class $$FoodsTableTableManager
                 name: name,
                 category: category,
                 currentLevel: currentLevel,
+                isSafeFood: isSafeFood,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

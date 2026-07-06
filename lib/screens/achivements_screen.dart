@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/app_theme.dart';
 import '../core/badge_type.dart';
 import '../database/app_database.dart';
 import '../models/badge_entity.dart';
@@ -15,18 +16,12 @@ class AchievementsScreen extends ConsumerWidget {
     final badgeRepo = ref.watch(badgeRepositoryProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Traguardi di ${person.name}'),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: Text('Traguardi di ${person.name}')),
       body: FutureBuilder<List<BadgeEntity>>(
         future: badgeRepo.getBadgesForPerson(person.id),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.orange),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
           final unlockedTypes = snapshot.data!.map((b) => b.badgeType).toSet();
 
@@ -34,7 +29,6 @@ class AchievementsScreen extends ConsumerWidget {
             onRefresh: () async {
               (context as Element).markNeedsBuild();
             },
-            color: Colors.orange,
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: BadgeType.values.length,
@@ -50,7 +44,7 @@ class AchievementsScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
                       color: isUnlocked
-                          ? Colors.orange.shade200
+                          ? AppColors.salvia.withValues(alpha: 0.4)
                           : Colors.grey.shade300,
                     ),
                   ),

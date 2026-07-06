@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../core/app_theme.dart';
 import '../core/badge_type.dart';
 import '../core/exposure_level.dart';
 import '../database/app_database.dart';
@@ -23,15 +24,8 @@ class CalendarScreen extends ConsumerWidget {
     final calendarAsync = ref.watch(calendarProvider(person.id));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calendario'),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
       body: calendarAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.orange),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Errore: $e')),
         data: (calState) => Column(
           children: [
@@ -48,11 +42,11 @@ class CalendarScreen extends ConsumerWidget {
               },
               calendarStyle: const CalendarStyle(
                 selectedDecoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: AppColors.salvia,
                   shape: BoxShape.circle,
                 ),
                 todayDecoration: BoxDecoration(
-                  color: Colors.orangeAccent,
+                  color: AppColors.pesca,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -112,13 +106,15 @@ class CalendarScreen extends ConsumerWidget {
     DateTime day,
     List<FoodEntity> foods,
   ) {
+    // Solo gli alimenti in percorso SOS: i safe food non vanno pianificati.
+    final sosFoods = foods.where((f) => !f.isSafeFood).toList();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => AddSessionSheet(
         personId: person.id,
         date: day,
-        foods: foods,
+        foods: sosFoods,
         onSave: () {
           if (onDataChanged != null) onDataChanged!();
           ref.invalidate(dashboardProvider(person.id));
@@ -185,10 +181,6 @@ class CalendarScreen extends ConsumerWidget {
           Center(
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
               child: const Text('Fantastico!'),
             ),
           ),
@@ -217,10 +209,10 @@ class _DayHeader extends StatelessWidget {
           ),
           TextButton.icon(
             onPressed: onAdd,
-            icon: const Icon(Icons.add, color: Colors.orange),
+            icon: const Icon(Icons.add, color: AppColors.salvia),
             label: const Text(
               'Aggiungi',
-              style: TextStyle(color: Colors.orange),
+              style: TextStyle(color: AppColors.salvia),
             ),
           ),
         ],
@@ -291,10 +283,6 @@ class _SessionCard extends StatelessWidget {
               )
             : ElevatedButton(
                 onPressed: onRegister,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
                 child: const Text('Registra'),
               ),
       ),

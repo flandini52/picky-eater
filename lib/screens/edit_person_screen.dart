@@ -67,11 +67,7 @@ class _EditPersonScreenState extends ConsumerState<EditPersonScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Modifica persona'),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Modifica persona')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -91,8 +87,6 @@ class _EditPersonScreenState extends ConsumerState<EditPersonScreen> {
               child: ElevatedButton(
                 onPressed: _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text('Salva modifiche'),
