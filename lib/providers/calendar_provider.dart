@@ -5,6 +5,7 @@ import '../models/session_entity.dart';
 import '../repositories/badge_repository.dart';
 import 'database_provider.dart';
 import 'dashboard_provider.dart';
+import 'notification_provider.dart';
 
 final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
   return BadgeRepository(ref.watch(databaseProvider));
@@ -45,6 +46,22 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
         .read(foodRepositoryProvider)
         .getFoodsByPerson(personId);
     return CalendarState(focusedDay: DateTime.now(), foods: foods);
+  }
+
+  /// Ricarica la lista completa (SOS + safe food) dopo l'inserimento o la
+  /// modifica di un alimento. Usa [getFoodsByPerson] e non
+  /// [FoodRepository.getSosFoodsByPerson]: `state.foods` deve restare
+  /// completa perché `calendar_screen.dart` la usa anche per il lookup
+  /// nome-alimento delle sessioni collegate a cibi diventati safe food nel
+  /// frattempo — il filtro SOS-only va fatto solo al punto d'uso
+  /// (`_showAddSession`).
+  Future<void> refreshFoods(String personId) async {
+    final foods = await ref
+        .read(foodRepositoryProvider)
+        .getFoodsByPerson(personId);
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(foods: foods));
   }
 
   Future<void> selectDay(String personId, DateTime day) async {
@@ -100,6 +117,7 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
 
   Future<List<BadgeType>> completeSession({
     required String personId,
+    required String personName,
     required String sessionId,
     required String foodId,
     required int currentFoodLevel,
@@ -132,6 +150,15 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
         .read(badgeRepositoryProvider)
         .checkAndUnlockBadges(personId, foodId, achievedLevel);
     await refreshSessionsForDay(personId);
+
+    // Reschedula solo la notifica della persona corrente
+    final notificationState = await ref.read(notificationProvider.future);
+    if (notificationState.isEnabled && notificationState.permissionGranted) {
+      await ref
+          .read(notificationProvider.notifier)
+          .rescheduleForPerson(personId: personId, personName: personName);
+    }
+
     return badges;
   }
 }

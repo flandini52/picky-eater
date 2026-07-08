@@ -10,6 +10,7 @@ import 'food_list_screen.dart';
 import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
 import 'edit_person_screen.dart';
+import 'notification_settings_screen.dart';
 import 'pdf_report_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -83,6 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       name: person.name,
       birthDate: person.birthDate,
       avatarColor: person.avatarColor,
+      createdAt: person.createdAt,
     );
     final result = await Navigator.push<bool>(
       context,
@@ -234,6 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   name: selectedPerson.name,
                                   birthDate: selectedPerson.birthDate,
                                   avatarColor: selectedPerson.avatarColor,
+                                  createdAt: selectedPerson.createdAt,
                                 ),
                               ),
                             ),
@@ -278,6 +281,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           name: selectedPerson.name,
                           birthDate: selectedPerson.birthDate,
                           avatarColor: selectedPerson.avatarColor,
+                          createdAt: selectedPerson.createdAt,
                         ),
                       )
                     : _currentIndex == 1
@@ -291,6 +295,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           name: selectedPerson.name,
                           birthDate: selectedPerson.birthDate,
                           avatarColor: selectedPerson.avatarColor,
+                          createdAt: selectedPerson.createdAt,
                         ),
                       )
                     : _currentIndex == 2
@@ -301,6 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           name: selectedPerson.name,
                           birthDate: selectedPerson.birthDate,
                           avatarColor: selectedPerson.avatarColor,
+                          createdAt: selectedPerson.createdAt,
                         ),
                         onDataChanged: _refreshData,
                       )
@@ -371,14 +377,22 @@ class _SettingsSheet extends StatelessWidget {
             trailing: Text('Italiano', style: TextStyle(color: Colors.grey)),
             enabled: false,
           ),
-          const ListTile(
-            leading: Icon(Icons.notifications_outlined, color: Colors.grey),
-            title: Text('Notifiche'),
-            trailing: Text(
-              'Presto disponibile',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+          ListTile(
+            leading: const Icon(
+              Icons.notifications_outlined,
+              color: Colors.orange,
             ),
-            enabled: false,
+            title: const Text('Notifiche'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.pop(context); // chiude il bottom sheet
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
         ],

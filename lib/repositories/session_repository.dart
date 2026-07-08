@@ -38,6 +38,9 @@ class SessionRepository {
     return sessions.map(_toEntity).toList();
   }
 
+  Future<DateTime?> getLastCompletedSessionDate(String personId) =>
+      _db.getLastCompletedSessionDate(personId);
+
   Future<int> getSessionsThisWeek(String personId) =>
       _db.getSessionsThisWeek(personId);
 

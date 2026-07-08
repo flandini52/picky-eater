@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+
 import '../database/app_database.dart';
 import '../models/person_entity.dart';
 
@@ -12,6 +14,7 @@ class PersonRepository {
     name: person.name,
     birthDate: person.birthDate,
     avatarColor: person.avatarColor,
+    createdAt: person.createdAt,
   );
 
   Future<List<PersonEntity>> getPersonsByFamily(String familyId) async {
@@ -24,7 +27,12 @@ class PersonRepository {
     required String familyId,
     required String name,
   }) => _db.insertPerson(
-    PersonsCompanion.insert(id: id, familyId: familyId, name: name),
+    PersonsCompanion.insert(
+      id: id,
+      familyId: familyId,
+      name: name,
+      createdAt: Value(DateTime.now()),
+    ),
   );
 
   Future<void> updatePersonName(String personId, String name) =>

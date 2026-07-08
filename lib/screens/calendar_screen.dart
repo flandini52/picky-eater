@@ -134,6 +134,7 @@ class CalendarScreen extends ConsumerWidget {
       isScrollControlled: true,
       builder: (_) => CompleteSessionSheet(
         personId: person.id,
+        personName: person.name,
         session: session,
         food: food,
         onCompleted: (badges) async {

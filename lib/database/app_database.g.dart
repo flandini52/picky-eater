@@ -265,6 +265,17 @@ class $PersonsTable extends Persons with TableInfo<$PersonsTable, Person> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0xFFFF9800),
   );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -272,6 +283,7 @@ class $PersonsTable extends Persons with TableInfo<$PersonsTable, Person> {
     name,
     birthDate,
     avatarColor,
+    createdAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -321,6 +333,12 @@ class $PersonsTable extends Persons with TableInfo<$PersonsTable, Person> {
         ),
       );
     }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
     return context;
   }
 
@@ -350,6 +368,10 @@ class $PersonsTable extends Persons with TableInfo<$PersonsTable, Person> {
         DriftSqlType.int,
         data['${effectivePrefix}avatar_color'],
       )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
     );
   }
 
@@ -365,12 +387,14 @@ class Person extends DataClass implements Insertable<Person> {
   final String name;
   final DateTime? birthDate;
   final int avatarColor;
+  final DateTime? createdAt;
   const Person({
     required this.id,
     required this.familyId,
     required this.name,
     this.birthDate,
     required this.avatarColor,
+    this.createdAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -382,6 +406,9 @@ class Person extends DataClass implements Insertable<Person> {
       map['birth_date'] = Variable<DateTime>(birthDate);
     }
     map['avatar_color'] = Variable<int>(avatarColor);
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
     return map;
   }
 
@@ -394,6 +421,9 @@ class Person extends DataClass implements Insertable<Person> {
           ? const Value.absent()
           : Value(birthDate),
       avatarColor: Value(avatarColor),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
     );
   }
 
@@ -408,6 +438,7 @@ class Person extends DataClass implements Insertable<Person> {
       name: serializer.fromJson<String>(json['name']),
       birthDate: serializer.fromJson<DateTime?>(json['birthDate']),
       avatarColor: serializer.fromJson<int>(json['avatarColor']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
     );
   }
   @override
@@ -419,6 +450,7 @@ class Person extends DataClass implements Insertable<Person> {
       'name': serializer.toJson<String>(name),
       'birthDate': serializer.toJson<DateTime?>(birthDate),
       'avatarColor': serializer.toJson<int>(avatarColor),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
     };
   }
 
@@ -428,12 +460,14 @@ class Person extends DataClass implements Insertable<Person> {
     String? name,
     Value<DateTime?> birthDate = const Value.absent(),
     int? avatarColor,
+    Value<DateTime?> createdAt = const Value.absent(),
   }) => Person(
     id: id ?? this.id,
     familyId: familyId ?? this.familyId,
     name: name ?? this.name,
     birthDate: birthDate.present ? birthDate.value : this.birthDate,
     avatarColor: avatarColor ?? this.avatarColor,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
   );
   Person copyWithCompanion(PersonsCompanion data) {
     return Person(
@@ -444,6 +478,7 @@ class Person extends DataClass implements Insertable<Person> {
       avatarColor: data.avatarColor.present
           ? data.avatarColor.value
           : this.avatarColor,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
 
@@ -454,13 +489,15 @@ class Person extends DataClass implements Insertable<Person> {
           ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('birthDate: $birthDate, ')
-          ..write('avatarColor: $avatarColor')
+          ..write('avatarColor: $avatarColor, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, familyId, name, birthDate, avatarColor);
+  int get hashCode =>
+      Object.hash(id, familyId, name, birthDate, avatarColor, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -469,7 +506,8 @@ class Person extends DataClass implements Insertable<Person> {
           other.familyId == this.familyId &&
           other.name == this.name &&
           other.birthDate == this.birthDate &&
-          other.avatarColor == this.avatarColor);
+          other.avatarColor == this.avatarColor &&
+          other.createdAt == this.createdAt);
 }
 
 class PersonsCompanion extends UpdateCompanion<Person> {
@@ -478,6 +516,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
   final Value<String> name;
   final Value<DateTime?> birthDate;
   final Value<int> avatarColor;
+  final Value<DateTime?> createdAt;
   final Value<int> rowid;
   const PersonsCompanion({
     this.id = const Value.absent(),
@@ -485,6 +524,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
     this.name = const Value.absent(),
     this.birthDate = const Value.absent(),
     this.avatarColor = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PersonsCompanion.insert({
@@ -493,6 +533,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
     required String name,
     this.birthDate = const Value.absent(),
     this.avatarColor = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        familyId = Value(familyId),
@@ -503,6 +544,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
     Expression<String>? name,
     Expression<DateTime>? birthDate,
     Expression<int>? avatarColor,
+    Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -511,6 +553,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
       if (name != null) 'name': name,
       if (birthDate != null) 'birth_date': birthDate,
       if (avatarColor != null) 'avatar_color': avatarColor,
+      if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -521,6 +564,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
     Value<String>? name,
     Value<DateTime?>? birthDate,
     Value<int>? avatarColor,
+    Value<DateTime?>? createdAt,
     Value<int>? rowid,
   }) {
     return PersonsCompanion(
@@ -529,6 +573,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
       name: name ?? this.name,
       birthDate: birthDate ?? this.birthDate,
       avatarColor: avatarColor ?? this.avatarColor,
+      createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -551,6 +596,9 @@ class PersonsCompanion extends UpdateCompanion<Person> {
     if (avatarColor.present) {
       map['avatar_color'] = Variable<int>(avatarColor.value);
     }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -565,6 +613,7 @@ class PersonsCompanion extends UpdateCompanion<Person> {
           ..write('name: $name, ')
           ..write('birthDate: $birthDate, ')
           ..write('avatarColor: $avatarColor, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2417,6 +2466,7 @@ typedef $$PersonsTableCreateCompanionBuilder =
       required String name,
       Value<DateTime?> birthDate,
       Value<int> avatarColor,
+      Value<DateTime?> createdAt,
       Value<int> rowid,
     });
 typedef $$PersonsTableUpdateCompanionBuilder =
@@ -2426,6 +2476,7 @@ typedef $$PersonsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<DateTime?> birthDate,
       Value<int> avatarColor,
+      Value<DateTime?> createdAt,
       Value<int> rowid,
     });
 
@@ -2552,6 +2603,11 @@ class $$PersonsTableFilterComposer
 
   ColumnFilters<int> get avatarColor => $composableBuilder(
     column: $table.avatarColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2708,6 +2764,11 @@ class $$PersonsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$FamiliesTableOrderingComposer get familyId {
     final $$FamiliesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2754,6 +2815,9 @@ class $$PersonsTableAnnotationComposer
     column: $table.avatarColor,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   $$FamiliesTableAnnotationComposer get familyId {
     final $$FamiliesTableAnnotationComposer composer = $composerBuilder(
@@ -2918,6 +2982,7 @@ class $$PersonsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<DateTime?> birthDate = const Value.absent(),
                 Value<int> avatarColor = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PersonsCompanion(
                 id: id,
@@ -2925,6 +2990,7 @@ class $$PersonsTableTableManager
                 name: name,
                 birthDate: birthDate,
                 avatarColor: avatarColor,
+                createdAt: createdAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2934,6 +3000,7 @@ class $$PersonsTableTableManager
                 required String name,
                 Value<DateTime?> birthDate = const Value.absent(),
                 Value<int> avatarColor = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PersonsCompanion.insert(
                 id: id,
@@ -2941,6 +3008,7 @@ class $$PersonsTableTableManager
                 name: name,
                 birthDate: birthDate,
                 avatarColor: avatarColor,
+                createdAt: createdAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

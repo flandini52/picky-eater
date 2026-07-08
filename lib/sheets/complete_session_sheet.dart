@@ -11,6 +11,7 @@ import '../widgets/outcome_badge.dart';
 
 class CompleteSessionSheet extends ConsumerStatefulWidget {
   final String personId;
+  final String personName;
   final SessionEntity session;
   final FoodEntity food;
   final Future<void> Function(List<BadgeType>) onCompleted;
@@ -18,6 +19,7 @@ class CompleteSessionSheet extends ConsumerStatefulWidget {
   const CompleteSessionSheet({
     super.key,
     required this.personId,
+    required this.personName,
     required this.session,
     required this.food,
     required this.onCompleted,
@@ -177,6 +179,7 @@ class _CompleteSessionSheetState extends ConsumerState<CompleteSessionSheet> {
                       .read(calendarProvider(widget.personId).notifier)
                       .completeSession(
                         personId: widget.personId,
+                        personName: widget.personName,
                         sessionId: widget.session.id,
                         foodId: widget.food.id,
                         currentFoodLevel: widget.food.currentLevel,

@@ -135,17 +135,19 @@ Un alimento può essere marcato `isSafeFood` (`foods.isSafeFood`, `FoodEntity.is
 
 ---
 
-## Database — schema attuale (schemaVersion: 6)
+## Database — schema attuale (schemaVersion: 7)
 
 ```
 families       → id, name
-persons        → id, familyId, name, birthDate, avatarColor
+persons        → id, familyId, name, birthDate, avatarColor, createdAt
 foods          → id, personId, name, category, currentLevel, isSafeFood
 sessions       → id, personId, foodId, date, targetLevel, activity,
                  achievedLevel, achievedActivity, outcome(legacy), notes
 weeklyGoals    → personId, targetSessions
 badges         → id, personId, badgeType, unlockedAt
 ```
+
+`persons.createdAt` è `DateTime?` **nullable, senza default a livello di colonna** (`dateTime().nullable()()`). SQLite non supporta `ALTER TABLE ... ADD COLUMN` con un default non costante (es. `currentDateAndTime`) — usarlo fa fallire la migrazione a runtime con `SqliteException(1): Cannot add a column with non-constant default`. Il valore viene impostato lato Dart in `PersonRepository.insertPerson` (`createdAt: Value(DateTime.now())`), non nello schema. Chi consuma il campo (es. `NotificationNotifier.rescheduleAll`) deve gestire l'eventuale `null` con un fallback esplicito.
 
 ### Migrazioni applicate
 
@@ -155,8 +157,9 @@ badges         → id, personId, badgeType, unlockedAt
 - v4 → aggiunto `sessions.outcome` (legacy, non più scritto attivamente)
 - v5 → aggiunto `sessions.achievedActivity`
 - v6 → aggiunto `foods.isSafeFood` (default `false`)
+- v7 → aggiunto `persons.createdAt` (nullable, nessun default — vedi nota sopra)
 
-**Dopo qualsiasi modifica allo schema**: incrementa `schemaVersion`, aggiungi la migrazione in `onUpgrade`, poi lancia `dart run build_runner build`.
+**Dopo qualsiasi modifica allo schema**: incrementa `schemaVersion`, aggiungi la migrazione in `onUpgrade`, poi lancia `dart run build_runner build`. **Mai usare un default non costante** (es. `currentDateAndTime`, `DateTime.now()`) in una colonna aggiunta via `addColumn`: SQLite lo rifiuta a runtime. Se serve un timestamp di creazione, rendere la colonna nullable e impostarlo lato Dart nel repository all'insert.
 
 ### Costruttori di AppDatabase
 
@@ -264,6 +267,7 @@ Steps su ogni push/PR su `main`:
 - ✅ Safe foods — marcare un alimento come "già mangiato senza difficoltà", escluso dal percorso SOS e dal calendario (vedi sezione Safe foods sopra)
 - ✅ Report PDF progressi — genera e condivide (WhatsApp/email/Telegram) un PDF con safe foods, alimenti in percorso e riepilogo (`lib/services/pdf_report_service.dart`, `pdf_report_provider.dart`, `pdf_report_screen.dart`, 4ª tab "Report" in `home_screen.dart`)
 - ✅ Redesign palette Salvia/Pesca/Crema/Corallo su tutte le schermate (non verificato visivamente su device)
+- ✅ Notifiche locali di inattività per persona, soglia configurabile, schermata dedicata raggiungibile da Impostazioni (vedi sezione "Notifiche locali" sotto)
 
 ---
 
@@ -272,7 +276,7 @@ Steps su ogni push/PR su `main`:
 ### Debito tecnico residuo
 
 - [ ] **Punto 4 refactoring** — riorganizzazione feature-first (`lib/features/food/`, `calendar/`, `dashboard/`, `achievements/`) — bassa priorità, la logica è già separata dalla UI
-- [ ] Espandere i test: `PersonRepository`, `BadgeRepository`
+- [ ] Espandere i test: `PersonRepository`, `BadgeRepository`, `NotificationSettingsRepository`
 - [ ] `lib/services/` è vuota — rimuovere o popolare quando si aggiungono notifiche/export
 
 ### Decisione presa: PDF via share sheet, non QR
@@ -323,9 +327,22 @@ Motivazione: la tabella `foods` ha già un campo `category`, quindi zero migrazi
 
 Il colore-categoria va usato in modo consistente in tutta l'app (calendario, lista alimenti, food detail) ma **deve restare visivamente distinto dagli accenti di stato** (verde/ambra/blu/rosso sopra) per non generare ambiguità tra "categoria alimento" e "esito sessione". Serve una sotto-palette pastello dedicata alle categorie (es. lavanda, sabbia, azzurro polvere, terracotta chiaro), in armonia con Salvia/Pesca/Crema/Corallo ma fuori dal set semaforico. Il colore è un aiuto visivo di raggruppamento, non sostituisce il nome alimento in etichetta.
 
-### Notifiche locali — trigger confermato
+### Notifiche locali — fatto (promemoria di inattività, non promemoria sessione pianificata)
 
-Per ora un solo trigger: quando si pianifica una sessione (`AddSessionSheet`), viene programmato un promemoria locale per la data/ora della sessione. Nessun'altra notifica (obiettivo settimanale, badge) per il momento — solo notifiche locali, nessun push da server.
+**Nota**: il trigger inizialmente previsto qui ("promemoria alla data/ora di una sessione pianificata in `AddSessionSheet`") è stato **sostituito** da un trigger diverso durante l'implementazione: un promemoria di **inattività**. Nessuna sessione pianificata viene notificata a una data specifica; il sistema invece notifica quando passano troppi giorni senza una sessione *completata*.
+
+**Comportamento**: soglia giorni configurabile globalmente (default 7, min 1, max 30, `NotificationSettingsRepository`, `shared_preferences`). Ogni persona ha una notifica indipendente schedulata con ID univoco `personId.hashCode`. La notifica scatta se `DateTime.now() - ultimaSessioneCompletata > sogliaGiorni`; se la persona non ha ancora sessioni completate, si usa `persons.createdAt` come base (vedi nota sullo schema sopra — nullable, fallback a `DateTime.now()` se anche quello manca). Al completamento di una sessione (`CalendarNotifier.completeSession`), solo la notifica della persona coinvolta viene cancellata e rischedulata — le altre persone non vengono toccate.
+
+File coinvolti:
+- `lib/services/notification_service.dart` — `NotificationService`, singleton, zero dipendenze Riverpod/Drift. Wrappa `flutter_local_notifications` (schedulazione via `zonedSchedule`, timezone calcolata a offset fisso dal device senza dipendenze aggiuntive) + `permission_handler` (richiesta permesso). Persiste le date schedulate per persona su `shared_preferences` (il plugin non le espone tramite `pendingNotificationRequests`). `scheduleInactivityNotification`/`cancelNotification`/`cancelAll` sono avvolte in try/catch: se il permesso viene revocato dalle impostazioni di sistema dopo l'attivazione, il plugin lancia un'eccezione runtime che qui viene ingoiata per non far crashare chi chiama (es. il completamento di una sessione).
+- `lib/repositories/notification_settings_repository.dart` — `NotificationSettingsRepository`, solo `shared_preferences`, non Drift: `isEnabled`/`setEnabled`, `getThresholdDays`/`setThresholdDays`.
+- `lib/providers/notification_provider.dart` — `notificationProvider` (`AsyncNotifierProvider<NotificationNotifier, NotificationState>`), espone stato per persona (`PersonNotificationStatus`: ultima sessione, prossima notifica) e i metodi `requestPermissionAndEnable`, `setEnabled`, `setThresholdDays`, `rescheduleForPerson`, `rescheduleAll`.
+- `lib/screens/notification_settings_screen.dart` — `NotificationSettingsScreen`, raggiungibile da "Notifiche" nel bottom sheet impostazioni di `home_screen.dart` (non più placeholder). Switch attiva/disattiva, stepper soglia giorni (visibile solo se attivo), sezione stato promemoria per persona, banner "Apri impostazioni telefono" se il permesso è negato.
+- `lib/main.dart` — chiama `NotificationService().initialize()` prima di `runApp` per mostrare il popup permessi nativo al primo avvio (idempotente: l'OS non ri-mostra il dialog se già deciso).
+- Android: `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED` in `AndroidManifest.xml` + 2 receiver di `flutter_local_notifications`. `android/app/build.gradle.kts` richiede `isCoreLibraryDesugaringEnabled = true` + dipendenza `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")` — requisito documentato del plugin, senza il quale la build fallisce con "Dependency ':flutter_local_notifications' requires core library desugaring to be enabled".
+- iOS: `UNUserNotificationCenter.current().delegate` impostato in `AppDelegate.swift`.
+
+Verificato con `flutter analyze`/`format`/`test` (11/11) verdi e avvio reale su Pixel 7 (nessun crash, nessuna `SqliteException`, flusso completo testato: aggiunta persona → navigazione schermate → generazione PDF).
 
 ### Schermata statistiche — ripresa in roadmap
 
@@ -337,7 +354,7 @@ Punto rimasto in sospeso da tempo: separare "Progressi" (analytics vere: trend, 
 2. ~~**Colori per macro-categoria**~~ — fatto, vedi `lib/core/food_category_color.dart`
 3. ~~**Redesign completo**~~ — fatto su tutte le schermate, vedi sezione sopra (manca solo la verifica visiva su device)
 4. ~~**PDF + share sheet**~~ — fatto, vedi sezione sopra. Nota: non include ancora il banner di sicurezza/privacy dati menzionato originariamente — da valutare se aggiungerlo
-5. **Notifiche locali** — promemoria sessione pianificata (unico trigger per ora)
+5. ~~**Notifiche locali**~~ — fatto, vedi sezione sopra (promemoria di inattività, non promemoria sessione pianificata come previsto originariamente)
 6. **TestFlight beta** con la business partner
 7. **Keystore release + store assets + monetizzazione** — ultimo miglio
 
@@ -347,7 +364,7 @@ Punto rimasto in sospeso da tempo: separare "Progressi" (analytics vere: trend, 
 - [x] **Redesign completo ovunque** — palette Salvia/Pesca/Crema/Corallo + neutri, stile pastello, un'unica esperienza (famiglia). Non verificato visivamente su device
 - [ ] **Schermata statistiche/Progressi** — separare da "Alimenti", non ancora affrontato nonostante il redesign (era previsto "come parte del redesign" ma non è stato fatto)
 - [x] **PDF report + share sheet** — fatto (vedi sopra). Manca ancora: banner di sicurezza/privacy dati nella schermata (era nella richiesta originale, non implementato)
-- [ ] **Notifiche locali** — promemoria sessione pianificata (trigger confermato, unico per ora)
+- [x] **Notifiche locali** — fatto: promemoria di inattività per persona, soglia configurabile (vedi sezione sopra)
 - [ ] **Obiettivo settimanale configurabile** — ora fisso a 3, deve essere modificabile dall'utente
 - [ ] **Onboarding** — schermata introduttiva per nuovi utenti con spiegazione metodo SOS
 

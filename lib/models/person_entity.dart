@@ -4,6 +4,7 @@ class PersonEntity {
   final String name;
   final DateTime? birthDate;
   final int avatarColor;
+  final DateTime? createdAt;
 
   const PersonEntity({
     required this.id,
@@ -11,6 +12,7 @@ class PersonEntity {
     required this.name,
     this.birthDate,
     this.avatarColor = 0xFFFF9800,
+    this.createdAt,
   });
 
   PersonEntity copyWith({
@@ -19,6 +21,7 @@ class PersonEntity {
     String? name,
     DateTime? birthDate,
     int? avatarColor,
+    DateTime? createdAt,
   }) {
     return PersonEntity(
       id: id ?? this.id,
@@ -26,6 +29,7 @@ class PersonEntity {
       name: name ?? this.name,
       birthDate: birthDate ?? this.birthDate,
       avatarColor: avatarColor ?? this.avatarColor,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

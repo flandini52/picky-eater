@@ -24,7 +24,12 @@ void main() {
   test('generateReport produce un file PDF valido e non vuoto', () async {
     final service = PdfReportService();
 
-    const person = PersonEntity(id: 'p1', familyId: 'f1', name: 'Marco');
+    final person = PersonEntity(
+      id: 'p1',
+      familyId: 'f1',
+      name: 'Marco',
+      createdAt: DateTime(2026, 1, 1),
+    );
     const food = FoodEntity(
       id: 'food1',
       personId: 'p1',
@@ -79,7 +84,12 @@ void main() {
 
   test('generateReport gestisce alimenti senza sessioni', () async {
     final service = PdfReportService();
-    const person = PersonEntity(id: 'p2', familyId: 'f1', name: 'Giulia');
+    final person = PersonEntity(
+      id: 'p2',
+      familyId: 'f1',
+      name: 'Giulia',
+      createdAt: DateTime(2026, 1, 1),
+    );
     const food = FoodEntity(
       id: 'food2',
       personId: 'p2',
@@ -100,7 +110,12 @@ void main() {
 
   test('generateReport gestisce solo safe foods senza alimenti SOS', () async {
     final service = PdfReportService();
-    const person = PersonEntity(id: 'p3', familyId: 'f1', name: 'Luca');
+    final person = PersonEntity(
+      id: 'p3',
+      familyId: 'f1',
+      name: 'Luca',
+      createdAt: DateTime(2026, 1, 1),
+    );
     const safeFood = FoodEntity(
       id: 'food3',
       personId: 'p3',

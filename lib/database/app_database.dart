@@ -45,6 +45,7 @@ class Persons extends Table {
   DateTimeColumn get birthDate => dateTime().nullable()();
   IntColumn get avatarColor =>
       integer().withDefault(const Constant(0xFFFF9800))();
+  DateTimeColumn get createdAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -113,7 +114,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'picky_eater_db');
@@ -137,6 +138,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.addColumn(foods, foods.isSafeFood);
+      }
+      if (from < 7) {
+        await m.addColumn(persons, persons.createdAt);
       }
     },
   );
@@ -250,6 +254,19 @@ class AppDatabase extends _$AppDatabase {
       notes: Value(notes),
     ),
   );
+  Future<DateTime?> getLastCompletedSessionDate(String personId) async {
+    final session =
+        await (select(sessions)
+              ..where(
+                (s) =>
+                    s.personId.equals(personId) & s.achievedLevel.isNotNull(),
+              )
+              ..orderBy([(s) => OrderingTerm.desc(s.date)])
+              ..limit(1))
+            .getSingleOrNull();
+    return session?.date;
+  }
+
   Future<List<Session>> getCompletedSessionsForFood(String foodId) async {
     return (select(sessions)
           ..where((s) => s.foodId.equals(foodId) & s.achievedLevel.isNotNull())

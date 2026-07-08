@@ -4,10 +4,15 @@ import 'core/app_theme.dart';
 import 'database/app_database.dart';
 import 'providers/database_provider.dart';
 import 'screens/home_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = AppDatabase();
+
+  // Mostra popup permessi al primo avvio — il sistema operativo gestisce il dialog
+  await NotificationService().initialize();
+
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(database)],

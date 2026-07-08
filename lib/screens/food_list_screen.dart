@@ -5,6 +5,7 @@ import '../core/exposure_level.dart';
 import '../database/app_database.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
+import '../providers/calendar_provider.dart';
 import '../providers/dashboard_provider.dart';
 import 'add_food_screen.dart';
 import 'edit_food_screen.dart';
@@ -86,21 +87,45 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
               ),
             ),
             ...ExposureLevel.values.map((level) {
-              final isSelected = food.currentLevel == level.index;
+              final isSelected =
+                  !food.isSafeFood && food.currentLevel == level.index;
               return ListTile(
                 title: Text(level.label),
                 trailing: isSelected
                     ? const Icon(Icons.check, color: AppColors.salvia)
                     : null,
                 onTap: () async {
+                  if (food.isSafeFood) {
+                    await ref
+                        .read(foodRepositoryProvider)
+                        .setSafeFood(food.id, false);
+                  }
                   await ref
                       .read(foodRepositoryProvider)
                       .updateFoodLevel(food.id, level.index);
                   await _loadFoods();
+                  await _refreshCalendarFoods();
                   if (mounted) Navigator.pop(context);
                 },
               );
             }),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: const Text('Safe food'),
+              subtitle: const Text('Lo mangia già senza problemi'),
+              trailing: food.isSafeFood
+                  ? const Icon(Icons.check, color: AppColors.salvia)
+                  : null,
+              onTap: () async {
+                await ref
+                    .read(foodRepositoryProvider)
+                    .setSafeFood(food.id, true);
+                await _loadFoods();
+                await _refreshCalendarFoods();
+                if (mounted) Navigator.pop(context);
+              },
+            ),
             const SizedBox(height: 16),
           ],
         );
@@ -111,6 +136,13 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
   Future<void> _removeFromSafeFoods(FoodEntity food) async {
     await ref.read(foodRepositoryProvider).setSafeFood(food.id, false);
     await _loadFoods();
+    await _refreshCalendarFoods();
+  }
+
+  Future<void> _refreshCalendarFoods() async {
+    await ref
+        .read(calendarProvider(widget.person.id).notifier)
+        .refreshFoods(widget.person.id);
   }
 
   Color _levelColor(int level) {
@@ -357,6 +389,7 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
                   isSafeFood: result.isSafeFood,
                 );
             await _loadFoods();
+            await _refreshCalendarFoods();
           }
         },
         child: const Icon(Icons.add),
