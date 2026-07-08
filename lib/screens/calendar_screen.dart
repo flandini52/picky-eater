@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../core/app_theme.dart';
 import '../core/badge_type.dart';
 import '../core/exposure_level.dart';
+import '../core/food_category_color.dart';
 import '../database/app_database.dart';
 import '../models/food_entity.dart';
 import '../models/session_entity.dart';
@@ -40,6 +41,11 @@ class CalendarScreen extends ConsumerWidget {
                     .read(calendarProvider(person.id).notifier)
                     .selectDay(person.id, selectedDay);
               },
+              onPageChanged: (focusedDay) {
+                ref
+                    .read(calendarProvider(person.id).notifier)
+                    .loadMarkersForMonth(person.id, focusedDay);
+              },
               calendarStyle: const CalendarStyle(
                 selectedDecoration: BoxDecoration(
                   color: AppColors.salvia,
@@ -49,6 +55,42 @@ class CalendarScreen extends ConsumerWidget {
                   color: AppColors.pesca,
                   shape: BoxShape.circle,
                 ),
+              ),
+              eventLoader: (day) {
+                final normalized = DateTime(day.year, day.month, day.day);
+                return calState.markers[normalized] ?? [];
+              },
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, day, events) {
+                  if (events.isEmpty) return const SizedBox();
+                  final markers = events.cast<SessionMarker>();
+
+                  // Prima i completati, poi i pianificati — max 3 (limite
+                  // nativo di table_calendar).
+                  final sorted = [
+                    ...markers.where((m) => m.isCompleted),
+                    ...markers.where((m) => !m.isCompleted),
+                  ].take(3).toList();
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: sorted.map((marker) {
+                      final color = marker.isCompleted
+                          ? (marker.foodCategory?.categoryColor ??
+                                AppColors.salvia)
+                          : Colors.grey.shade400;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
             ),
             const Divider(),

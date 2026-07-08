@@ -11,17 +11,28 @@ final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
   return BadgeRepository(ref.watch(databaseProvider));
 });
 
+/// Marker di sessione per un giorno del calendario — solo i dati necessari
+/// a colorare i puntini (`calendar_screen.dart`), non l'intera sessione.
+class SessionMarker {
+  final bool isCompleted;
+  final String? foodCategory;
+
+  const SessionMarker({required this.isCompleted, this.foodCategory});
+}
+
 class CalendarState {
   final DateTime focusedDay;
   final DateTime? selectedDay;
   final List<SessionEntity> sessionsForDay;
   final List<FoodEntity> foods;
+  final Map<DateTime, List<SessionMarker>> markers;
 
   const CalendarState({
     required this.focusedDay,
     this.selectedDay,
     this.sessionsForDay = const [],
     this.foods = const [],
+    this.markers = const {},
   });
 
   CalendarState copyWith({
@@ -29,12 +40,14 @@ class CalendarState {
     DateTime? selectedDay,
     List<SessionEntity>? sessionsForDay,
     List<FoodEntity>? foods,
+    Map<DateTime, List<SessionMarker>>? markers,
   }) {
     return CalendarState(
       focusedDay: focusedDay ?? this.focusedDay,
       selectedDay: selectedDay ?? this.selectedDay,
       sessionsForDay: sessionsForDay ?? this.sessionsForDay,
       foods: foods ?? this.foods,
+      markers: markers ?? this.markers,
     );
   }
 }
@@ -45,7 +58,57 @@ class CalendarNotifier extends FamilyAsyncNotifier<CalendarState, String> {
     final foods = await ref
         .read(foodRepositoryProvider)
         .getFoodsByPerson(personId);
-    return CalendarState(focusedDay: DateTime.now(), foods: foods);
+    final now = DateTime.now();
+    final markers = await _loadMarkers(personId, now, foods);
+    return CalendarState(focusedDay: now, foods: foods, markers: markers);
+  }
+
+  /// Carica i marker (pianificato/completato + categoria alimento) per tutte
+  /// le sessioni del mese di [month], da mostrare come puntini colorati sotto
+  /// le date del calendario.
+  Future<void> loadMarkersForMonth(String personId, DateTime month) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final markers = await _loadMarkers(personId, month, current.foods);
+    state = AsyncData(current.copyWith(markers: markers));
+  }
+
+  Future<Map<DateTime, List<SessionMarker>>> _loadMarkers(
+    String personId,
+    DateTime month,
+    List<FoodEntity> foods,
+  ) async {
+    final firstDay = DateTime(month.year, month.month, 1);
+    final firstOfNextMonth = DateTime(month.year, month.month + 1, 1);
+
+    final sessions = await ref
+        .read(sessionRepositoryProvider)
+        .getSessionsByPersonAndDateRange(personId, firstDay, firstOfNextMonth);
+
+    final markers = <DateTime, List<SessionMarker>>{};
+    for (final session in sessions) {
+      final day = DateTime(
+        session.date.year,
+        session.date.month,
+        session.date.day,
+      );
+      String? category;
+      for (final food in foods) {
+        if (food.id == session.foodId) {
+          category = food.category;
+          break;
+        }
+      }
+      markers
+          .putIfAbsent(day, () => [])
+          .add(
+            SessionMarker(
+              isCompleted: session.isCompleted,
+              foodCategory: category,
+            ),
+          );
+    }
+    return markers;
   }
 
   /// Ricarica la lista completa (SOS + safe food) dopo l'inserimento o la

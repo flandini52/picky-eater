@@ -38,11 +38,36 @@ class SessionRepository {
     return sessions.map(_toEntity).toList();
   }
 
+  Future<List<SessionEntity>> getCompletedSessionsForPerson(
+    String personId,
+  ) async {
+    final sessions = await _db.getCompletedSessionsForPerson(personId);
+    return sessions.map(_toEntity).toList();
+  }
+
+  /// [to] esclusivo — passare il primo giorno del mese successivo per
+  /// includere anche l'ultimo giorno del mese richiesto.
+  Future<List<SessionEntity>> getSessionsByPersonAndDateRange(
+    String personId,
+    DateTime from,
+    DateTime to,
+  ) async {
+    final sessions = await _db.getSessionsByPersonAndDateRange(
+      personId,
+      from,
+      to,
+    );
+    return sessions.map(_toEntity).toList();
+  }
+
   Future<DateTime?> getLastCompletedSessionDate(String personId) =>
       _db.getLastCompletedSessionDate(personId);
 
   Future<int> getSessionsThisWeek(String personId) =>
       _db.getSessionsThisWeek(personId);
+
+  Future<int> getSessionsThisMonth(String personId) =>
+      _db.getSessionsThisMonth(personId);
 
   Future<void> insertSession({
     required String id,

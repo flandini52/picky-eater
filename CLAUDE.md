@@ -268,6 +268,8 @@ Steps su ogni push/PR su `main`:
 - ✅ Report PDF progressi — genera e condivide (WhatsApp/email/Telegram) un PDF con safe foods, alimenti in percorso e riepilogo (`lib/services/pdf_report_service.dart`, `pdf_report_provider.dart`, `pdf_report_screen.dart`, 4ª tab "Report" in `home_screen.dart`)
 - ✅ Redesign palette Salvia/Pesca/Crema/Corallo su tutte le schermate (non verificato visivamente su device)
 - ✅ Notifiche locali di inattività per persona, soglia configurabile, schermata dedicata raggiungibile da Impostazioni (vedi sezione "Notifiche locali" sotto)
+- ✅ Obiettivo settimanale configurabile dall'utente (icona matita sulla card obiettivo in `DashboardScreen`, dialog stepper min 1/max 14, `weeklyGoalRepositoryProvider.setWeeklyGoal`)
+- ✅ Dashboard "Progressi" motivazionale — sostituita la griglia di card alimenti (ora solo in `FoodListScreen`) con: card obiettivo settimanale, 4 stat card (sessioni questo mese, alimenti in percorso, safe foods, sessioni totali), grafico a barre delle ultime 8 settimane (`fl_chart`), sezione "Progressi recenti" (alimenti migliorati negli ultimi 30 giorni), sezione "Da non dimenticare" (alimenti SOS senza sessione completata da >14 giorni, con bottone che naviga al Calendario), messaggio motivazionale in fondo che cambia in base alle sessioni della settimana (vedi sezione dedicata sotto)
 
 ---
 
@@ -344,9 +346,37 @@ File coinvolti:
 
 Verificato con `flutter analyze`/`format`/`test` (11/11) verdi e avvio reale su Pixel 7 (nessun crash, nessuna `SqliteException`, flusso completo testato: aggiunta persona → navigazione schermate → generazione PDF).
 
-### Schermata statistiche — ripresa in roadmap
+### Dashboard "Progressi" motivazionale — fatto
 
-Punto rimasto in sospeso da tempo: separare "Progressi" (analytics vere: trend, confronti tra alimenti/periodi) da "Alimenti" (lista operativa, oggi mescolate in `food_list_screen.dart`/`dashboard_screen.dart`). Da riprendere e specificare come parte del redesign.
+Separazione completata tra "Progressi" (analytics: trend, stat riassuntive, alimenti da festeggiare/riprendere) e "Alimenti" (lista operativa con livello/progresso per alimento, resta in `food_list_screen.dart` invariata). `DashboardScreen` non mostra più alimenti singoli.
+
+**`DashboardData`** (`lib/providers/dashboard_provider.dart`) semplificato — rimossi `FoodProgress`/`progress` (non usati altrove, es. il PDF ha il suo modello indipendente in `pdf_report_provider.dart`):
+```dart
+class DashboardData {
+  final int weeklyGoal;
+  final int sessionsThisWeek;
+  final int sessionsThisMonth;
+  final int totalSessionsAllTime;
+  final int totalFoodsTracked;   // alimenti SOS, non conta safe foods
+  final int totalSafeFoods;
+  final List<FoodProgressSummary> recentlyImproved; // migliorati negli ultimi 30 giorni
+  final List<FoodProgressSummary> stagnant;          // >14 giorni senza sessione completata (o mai avuta)
+  final List<WeeklySessionCount> weeklyTrend;        // ultime 8 settimane, per il grafico
+}
+```
+`FoodProgressSummary` (foodId, foodName, category, currentLevel, previousLevel, lastSessionDate) e `WeeklySessionCount` (weekStart, count) sono anch'essi definiti in `dashboard_provider.dart`, non sono `*Entity` di dominio.
+
+**Query aggiunte**: `SessionRepository.getSessionsThisMonth`, `.getCompletedSessionsForPerson` (entrambe delegano a nuovi metodi di `AppDatabase`, nessuna migrazione di schema — solo query, non tabelle/colonne). `FoodRepository` non ha richiesto nuovi metodi (`getSosFoodsByPerson`/`getSafeFoodsByPerson` esistenti bastano).
+
+**Logica di aggregazione** (in `DashboardNotifier._load`, non nella UI): per ogni alimento SOS si guarda lo storico sessioni completate (`getCompletedSessionsForFood`) diviso in "prima" e "dentro" la finestra dei 30 giorni. `previousLevel` = livello dell'ultima sessione completata prima della finestra (0 se nessuna). "Migliorato di recente" = esiste almeno una sessione dentro la finestra con `achievedLevel > previousLevel` (evita falsi positivi per alimenti fermi da mesi il cui `currentLevel` è solo storico). "Fermo" (stagnant) = nessuna sessione completata mai, oppure l'ultima è precedente a 14 giorni fa.
+
+**UI** (`lib/screens/dashboard_screen.dart`): card obiettivo settimanale (con icona matita, vedi sotto) → griglia 2x2 di stat card → `BarChart` (`fl_chart`) ultime 8 settimane, barra grigia se conteggio zero, altrimenti Salvia → sezione "Progressi recenti 🌟" (solo se non vuota) → sezione "Da non dimenticare" (solo se non vuota, bottone "Pianifica sessione →") → messaggio motivazionale sempre visibile in fondo.
+
+**Callback di navigazione**: `DashboardScreen` non conosce l'indice della tab corrente di `home_screen.dart`, quindi riceve `final VoidCallback? onNavigateToCalendar` dal costruttore. `home_screen.dart` lo passa come `() => setState(() => _currentIndex = 2)`. Il bottone "Pianifica sessione →" nella sezione "Da non dimenticare" lo invoca (nullable perché nei test/preview la dashboard può essere istanziata senza).
+
+**Obiettivo settimanale configurabile, per persona**: `weeklyGoals` è già indicizzata su `personId` (vedi schema), quindi ogni persona ha il proprio obiettivo indipendente (default 3, min 1, max 14) senza bisogno di modifiche allo schema. Icona matita accanto al titolo della card gradiente in `DashboardScreen`, apre un `AlertDialog` con `StatefulBuilder` (stepper − / valore / +). Al salvataggio la screen chiama `DashboardNotifier.updateWeeklyGoal(personId, newGoal)` — il notifier salva tramite `weeklyGoalRepositoryProvider.setWeeklyGoal` e ricarica lui stesso lo stato (`AsyncLoading` poi `_load(personId)`), così la card si aggiorna subito senza che la screen debba invalidare il provider manualmente.
+
+Verificato con `flutter analyze`/`format`/`test` (11/11) e `flutter build apk --debug` verdi. Non verificato visivamente su device (nessun tool screenshot in sessione).
 
 ### Ordine di lavoro concordato (feature in corso)
 
@@ -362,10 +392,10 @@ Punto rimasto in sospeso da tempo: separare "Progressi" (analytics vere: trend, 
 
 - [x] **Colori per macro-categoria alimento** — `lib/core/food_category_color.dart`, non ancora cablato nella UI (parte del redesign)
 - [x] **Redesign completo ovunque** — palette Salvia/Pesca/Crema/Corallo + neutri, stile pastello, un'unica esperienza (famiglia). Non verificato visivamente su device
-- [ ] **Schermata statistiche/Progressi** — separare da "Alimenti", non ancora affrontato nonostante il redesign (era previsto "come parte del redesign" ma non è stato fatto)
+- [x] **Schermata statistiche/Progressi** — `DashboardScreen` separata da "Alimenti" (vedi sezione "Dashboard 'Progressi' motivazionale" sopra): stat riassuntive, grafico ultime 8 settimane, alimenti da festeggiare/riprendere, niente più card alimenti singole
 - [x] **PDF report + share sheet** — fatto (vedi sopra). Manca ancora: banner di sicurezza/privacy dati nella schermata (era nella richiesta originale, non implementato)
 - [x] **Notifiche locali** — fatto: promemoria di inattività per persona, soglia configurabile (vedi sezione sopra)
-- [ ] **Obiettivo settimanale configurabile** — ora fisso a 3, deve essere modificabile dall'utente
+- [x] **Obiettivo settimanale configurabile** — icona matita sulla card obiettivo, dialog stepper min 1/max 14 (vedi sezione sopra)
 - [ ] **Onboarding** — schermata introduttiva per nuovi utenti con spiegazione metodo SOS
 
 ### Funzionalità priorità media

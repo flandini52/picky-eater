@@ -283,6 +283,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           avatarColor: selectedPerson.avatarColor,
                           createdAt: selectedPerson.createdAt,
                         ),
+                        onNavigateToCalendar: () =>
+                            setState(() => _currentIndex = 2),
                       )
                     : _currentIndex == 1
                     ? FoodListScreen(

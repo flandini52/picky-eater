@@ -230,6 +230,22 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
+  /// [to] esclusivo — passare il primo giorno del mese successivo per
+  /// includere anche l'ultimo giorno del mese richiesto.
+  Future<List<Session>> getSessionsByPersonAndDateRange(
+    String personId,
+    DateTime from,
+    DateTime to,
+  ) {
+    return (select(sessions)..where(
+          (s) =>
+              s.personId.equals(personId) &
+              s.date.isBiggerOrEqualValue(from) &
+              s.date.isSmallerThanValue(to),
+        ))
+        .get();
+  }
+
   Future<int> getSessionCountForFood(String foodId) async {
     final count =
         await (selectOnly(sessions)
@@ -272,6 +288,33 @@ class AppDatabase extends _$AppDatabase {
           ..where((s) => s.foodId.equals(foodId) & s.achievedLevel.isNotNull())
           ..orderBy([(s) => OrderingTerm.asc(s.date)]))
         .get();
+  }
+
+  Future<List<Session>> getCompletedSessionsForPerson(String personId) async {
+    return (select(sessions)
+          ..where(
+            (s) => s.personId.equals(personId) & s.achievedLevel.isNotNull(),
+          )
+          ..orderBy([(s) => OrderingTerm.asc(s.date)]))
+        .get();
+  }
+
+  Future<int> getSessionsThisMonth(String personId) async {
+    final now = DateTime.now();
+    final firstOfMonth = DateTime(now.year, now.month, 1);
+    final firstOfNextMonth = DateTime(now.year, now.month + 1, 1);
+
+    final count =
+        await (selectOnly(sessions)
+              ..addColumns([sessions.id.count()])
+              ..where(
+                sessions.personId.equals(personId) &
+                    sessions.achievedLevel.isNotNull() &
+                    sessions.date.isBiggerOrEqualValue(firstOfMonth) &
+                    sessions.date.isSmallerThanValue(firstOfNextMonth),
+              ))
+            .getSingle();
+    return count.read(sessions.id.count()) ?? 0;
   }
 
   // --- Weekly Goals ---
